@@ -1,0 +1,25 @@
+# Keep working docs local. Only README.md ships in the repo.
+*.md
+!README.md
+
+# Secrets. Never commit.
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Hardhat / build artifacts
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain/
+typechain-types/
+types/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
