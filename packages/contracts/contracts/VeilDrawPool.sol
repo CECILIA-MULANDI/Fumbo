@@ -32,9 +32,9 @@ contract VeilDrawPool is ZamaEthereumConfig {
     address[] public depositors;
     mapping(address => uint32) public indexOf;
 
-    event Deposited(address indexed user);
-    event Withdrawn(address indexed user);
-    event Claimed(uint32 indexed drawId, address indexed user);
+    event Deposited(address indexed user, euint64 indexed encAmount);
+    event Withdrawn(address indexed user, euint64 indexed encAmount);
+    event Claimed(uint32 indexed drawId, address indexed user, ebool indexed isWinner);
 
     error AlreadyWired();
     error NotWired();
@@ -88,7 +88,7 @@ contract VeilDrawPool is ZamaEthereumConfig {
         FHE.allowThis(_encTotalDeposits);
         FHE.allow(_encTotalDeposits, address(drawRegistry));
 
-        emit Deposited(msg.sender);
+        emit Deposited(msg.sender, transferred);
     }
 
     /// @notice Withdraw up to `encAmount` cUSDT of principal. Clamps to current balance via FHE.min; no loss.
@@ -112,7 +112,7 @@ contract VeilDrawPool is ZamaEthereumConfig {
         FHE.allowThis(_encTotalDeposits);
         FHE.allow(_encTotalDeposits, address(drawRegistry));
 
-        emit Withdrawn(msg.sender);
+        emit Withdrawn(msg.sender, credited);
     }
 
     /// @notice Claim for `drawId`. Winner gets encrypted prize; non-winners silently receive zero.
@@ -125,7 +125,7 @@ contract VeilDrawPool is ZamaEthereumConfig {
         FHE.allowTransient(encPrize, address(prizePot));
         prizePot.release(msg.sender, isWinner, encPrize);
         drawRegistry.markClaimed(drawId, msg.sender);
-        emit Claimed(drawId, msg.sender);
+        emit Claimed(drawId, msg.sender, isWinner);
     }
 
     function encBalanceOf(address user) external view returns (euint64) {

@@ -49,7 +49,7 @@ contract DrawRegistry is ZamaEthereumConfig {
     mapping(uint32 => euint64) private _encPrizeAmount;
     mapping(uint32 => mapping(address => bool)) public claimed;
 
-    event DrawTriggered(uint32 indexed drawId, uint256 prevrandao);
+    event DrawTriggered(uint32 indexed drawId, uint256 prevrandao, euint64 indexed encPrizeAmount, euint32 indexed encWinnerIndex);
     event ClaimMarked(uint32 indexed drawId, address indexed user);
     event DrawExpired(uint32 indexed drawId, bool hadClaim);
 
@@ -129,7 +129,7 @@ contract DrawRegistry is ZamaEthereumConfig {
         FHE.allowThis(encPrizeAmt);
 
         lastDrawTime = uint64(block.timestamp);
-        emit DrawTriggered(drawId, block.prevrandao);
+        emit DrawTriggered(drawId, block.prevrandao, encPrizeAmt, winnerIdx);
     }
 
     /// @notice Returns encrypted true/false for whether `user` won `drawId`. Grants ACL to caller for EIP-712 decrypt.

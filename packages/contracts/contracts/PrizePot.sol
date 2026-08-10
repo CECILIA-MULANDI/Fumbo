@@ -18,10 +18,10 @@ contract PrizePot is ZamaEthereumConfig {
     bool public wired;
 
     event ReserveFunded(uint64 amount);
-    event Accrued();
-    event Snapshot();
-    event Released(address indexed recipient);
-    event Rolledover();
+    event Accrued(euint64 indexed encAmount);
+    event Snapshot(euint64 indexed encPrizeAmount);
+    event Released(address indexed recipient, euint64 indexed encAmount);
+    event Rolledover(euint64 indexed encAmount);
 
     error AlreadyWired();
     error NotDeployer();
@@ -78,7 +78,7 @@ contract PrizePot is ZamaEthereumConfig {
         FHE.allowThis(_encReserve);
         FHE.allowThis(_encPot);
         FHE.allowThis(_encTotalYieldAccrued);
-        emit Accrued();
+        emit Accrued(credited);
     }
 
     /// @notice DrawRegistry snapshots the current pot as this draw's prize; drains _encPot to zero.
@@ -89,7 +89,7 @@ contract PrizePot is ZamaEthereumConfig {
         FHE.allowThis(_encPot);
         FHE.allowThis(amount);
         FHE.allow(amount, msg.sender);
-        emit Snapshot();
+        emit Snapshot(amount);
     }
 
     /// @notice Pool credits the prize to `recipient` iff `isWinner` is true; losers silently receive 0.
@@ -99,14 +99,14 @@ contract PrizePot is ZamaEthereumConfig {
         FHE.allowThis(encPrize);
         FHE.allow(encPrize, address(token));
         token.confidentialTransfer(recipient, encPrize);
-        emit Released(recipient);
+        emit Released(recipient, encPrize);
     }
 
     /// @notice DrawRegistry returns an expired-draw snapshot to the pot for the next draw.
     function rollover(euint64 encAmount) external onlyDrawRegistry {
         _encPot = FHE.add(_encPot, encAmount);
         FHE.allowThis(_encPot);
-        emit Rolledover();
+        emit Rolledover(encAmount);
     }
 
     function encReserve() external view returns (euint64) {
