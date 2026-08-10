@@ -160,4 +160,98 @@ describe("VeilDraw end-to-end", () => {
     const aliceBalAfter = await fhevm.userDecryptEuint(FhevmType.euint64, aliceBalAfterHandle, poolAddr, alice);
     expect(aliceBalAfter).to.equal(0n);
   });
+
+  it("triggerDraw reverts NoDepositors when pool is empty", async () => {
+    await network.provider.send("evm_increaseTime", [Number(DRAW_INTERVAL) + 1]);
+    await network.provider.send("evm_mine");
+    await expect(drawRegistry.triggerDraw()).to.be.revertedWithCustomError(drawRegistry, "NoDepositors");
+  });
+
+  it("triggerDraw reverts DrawNotReady before drawInterval elapses", async () => {
+    const poolAddr = await pool.getAddress();
+
+    await token.mint(alice.address, 4096);
+    await token.connect(alice).setOperator(poolAddr, 2n ** 47n - 1n);
+    const enc = await fhevm.createEncryptedInput(poolAddr, alice.address).add64(4096n).encrypt();
+    await pool.connect(alice).deposit(enc.handles[0], enc.inputProof);
+
+    await expect(drawRegistry.triggerDraw()).to.be.revertedWithCustomError(drawRegistry, "DrawNotReady");
+  });
+
+  it("double claim reverts AlreadyClaimed", async () => {
+    const tokenAddr = await token.getAddress();
+    const poolAddr = await pool.getAddress();
+
+    await token.mint(deployer.address, Number(INITIAL_RESERVE));
+    await token.mint(alice.address, 4096);
+
+    const reserveInput = await fhevm
+      .createEncryptedInput(tokenAddr, deployer.address)
+      .add64(INITIAL_RESERVE)
+      .encrypt();
+    await token
+      .connect(deployer)
+      ["confidentialTransfer(address,bytes32,bytes)"](
+        await prizePot.getAddress(),
+        reserveInput.handles[0],
+        reserveInput.inputProof,
+      );
+    await prizePot.connect(deployer).fundReserve(INITIAL_RESERVE);
+
+    await token.connect(alice).setOperator(poolAddr, 2n ** 47n - 1n);
+    const enc = await fhevm.createEncryptedInput(poolAddr, alice.address).add64(4096n).encrypt();
+    await pool.connect(alice).deposit(enc.handles[0], enc.inputProof);
+
+    await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
+    await network.provider.send("evm_mine");
+    await drawRegistry.triggerDraw();
+
+    await pool.connect(alice).claim(0);
+    await expect(pool.connect(alice).claim(0)).to.be.revertedWithCustomError(pool, "AlreadyClaimed");
+  });
+
+  it("unclaimed draw expires and rolls over", async () => {
+    const tokenAddr = await token.getAddress();
+    const poolAddr = await pool.getAddress();
+
+    await token.mint(deployer.address, Number(INITIAL_RESERVE));
+    await token.mint(alice.address, 4096);
+
+    const reserveInput = await fhevm
+      .createEncryptedInput(tokenAddr, deployer.address)
+      .add64(INITIAL_RESERVE)
+      .encrypt();
+    await token
+      .connect(deployer)
+      ["confidentialTransfer(address,bytes32,bytes)"](
+        await prizePot.getAddress(),
+        reserveInput.handles[0],
+        reserveInput.inputProof,
+      );
+    await prizePot.connect(deployer).fundReserve(INITIAL_RESERVE);
+
+    await token.connect(alice).setOperator(poolAddr, 2n ** 47n - 1n);
+    const enc = await fhevm.createEncryptedInput(poolAddr, alice.address).add64(4096n).encrypt();
+    await pool.connect(alice).deposit(enc.handles[0], enc.inputProof);
+
+    await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
+    await network.provider.send("evm_mine");
+    await drawRegistry.triggerDraw();
+
+    await expect(drawRegistry.expireDraw(0)).to.be.revertedWithCustomError(drawRegistry, "DrawNotExpirable");
+
+    await network.provider.send("evm_increaseTime", [Number(CLAIM_TIMEOUT) + 1]);
+    await network.provider.send("evm_mine");
+
+    await drawRegistry.expireDraw(0);
+    const draw = await drawRegistry.draws(0);
+    expect(draw.status).to.equal(1);
+    expect(draw.hasAnyClaim).to.equal(false);
+  });
+
+  it("wire reverts AlreadyWired on second call", async () => {
+    await expect(
+      prizePot.connect(deployer).wire(await pool.getAddress(), await drawRegistry.getAddress()),
+    ).to.be.revertedWithCustomError(prizePot, "AlreadyWired");
+  });
 });
