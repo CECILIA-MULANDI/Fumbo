@@ -70,7 +70,9 @@ contract VeilDrawPool is ZamaEthereumConfig {
     function deposit(externalEuint64 encAmount, bytes calldata proof) external {
         if (!wired) revert NotWired();
 
-        euint64 transferred = token.confidentialTransferFrom(msg.sender, address(this), encAmount, proof);
+        euint64 requested = FHE.fromExternal(encAmount, proof);
+        FHE.allowTransient(requested, address(token));
+        euint64 transferred = token.confidentialTransferFrom(msg.sender, address(this), requested);
 
         if (indexOf[msg.sender] == 0) {
             if (depositors.length >= maxDepositors) revert CapExceeded();
