@@ -254,4 +254,66 @@ describe("VeilDraw end-to-end", () => {
       prizePot.connect(deployer).wire(await pool.getAddress(), await drawRegistry.getAddress()),
     ).to.be.revertedWithCustomError(prizePot, "AlreadyWired");
   });
+
+  it("non-deployer cannot fundReserve, wire, or setDrawRegistry", async () => {
+    await expect(prizePot.connect(alice).fundReserve(100n)).to.be.revertedWithCustomError(prizePot, "NotDeployer");
+    await expect(
+      prizePot.connect(alice).wire(await pool.getAddress(), await drawRegistry.getAddress()),
+    ).to.be.revertedWithCustomError(prizePot, "NotDeployer");
+    await expect(
+      pool.connect(alice).setDrawRegistry(await drawRegistry.getAddress()),
+    ).to.be.revertedWithCustomError(pool, "NotDeployer");
+  });
+
+  it("random address cannot call accrue, release, rollover, snapshot on PrizePot", async () => {
+    const dummyHandle = ethers.ZeroHash;
+    await expect(prizePot.connect(alice).accrue(dummyHandle)).to.be.revertedWithCustomError(prizePot, "NotAuthorized");
+    await expect(prizePot.connect(alice).rollover(dummyHandle)).to.be.revertedWithCustomError(prizePot, "NotAuthorized");
+    await expect(prizePot.connect(alice).snapshot()).to.be.revertedWithCustomError(prizePot, "NotAuthorized");
+    await expect(
+      prizePot.connect(alice).release(alice.address, dummyHandle, dummyHandle),
+    ).to.be.revertedWithCustomError(prizePot, "NotAuthorized");
+  });
+
+  it("random address cannot call markClaimed on DrawRegistry", async () => {
+    await expect(drawRegistry.connect(alice).markClaimed(0, alice.address)).to.be.revertedWithCustomError(
+      drawRegistry,
+      "NotPool",
+    );
+  });
+
+  it("non-depositor claim does not revert but credits nothing", async () => {
+    const tokenAddr = await token.getAddress();
+    const poolAddr = await pool.getAddress();
+
+    await token.mint(deployer.address, Number(INITIAL_RESERVE));
+    await token.mint(alice.address, 4096);
+
+    const reserveInput = await fhevm
+      .createEncryptedInput(tokenAddr, deployer.address)
+      .add64(INITIAL_RESERVE)
+      .encrypt();
+    await token
+      .connect(deployer)
+      ["confidentialTransfer(address,bytes32,bytes)"](
+        await prizePot.getAddress(),
+        reserveInput.handles[0],
+        reserveInput.inputProof,
+      );
+    await prizePot.connect(deployer).fundReserve(INITIAL_RESERVE);
+
+    await token.connect(alice).setOperator(poolAddr, 2n ** 47n - 1n);
+    const enc = await fhevm.createEncryptedInput(poolAddr, alice.address).add64(4096n).encrypt();
+    await pool.connect(alice).deposit(enc.handles[0], enc.inputProof);
+
+    await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
+    await network.provider.send("evm_mine");
+    await drawRegistry.triggerDraw();
+
+    await expect(pool.connect(bob).claim(0)).to.not.be.reverted;
+
+    const bobCashHandle = await token.confidentialBalanceOf(bob.address);
+    const bobCash = await fhevm.userDecryptEuint(FhevmType.euint64, bobCashHandle, tokenAddr, bob);
+    expect(bobCash).to.equal(0n);
+  });
 });
