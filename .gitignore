@@ -23,3 +23,8 @@ types/
 .DS_Store
 .vscode/
 .idea/
+.agents/
+
+# Local tool state / previews
+skills-lock.json
+.brand-preview/
