@@ -3,7 +3,7 @@ import { ethers, fhevm, network } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 
-import type { DrawRegistry, MockConfidentialUSDT, PrizePot, VeilDrawPool } from "../types";
+import type { DrawRegistry, MockConfidentialUSDT, PrizePot, FumboPool } from "../types";
 
 const POOL_CAP: bigint = 2n ** 12n;
 const MAX_DEPOSITORS = 20;
@@ -13,14 +13,14 @@ const APR_BPS = 100;
 const YEAR_SECONDS = 365 * 24 * 3600;
 const INITIAL_RESERVE: bigint = 10_000n;
 
-describe("VeilDraw end-to-end", () => {
+describe("Fumbo end-to-end", () => {
   let deployer: HardhatEthersSigner;
   let alice: HardhatEthersSigner;
   let bob: HardhatEthersSigner;
 
   let token: MockConfidentialUSDT;
   let prizePot: PrizePot;
-  let pool: VeilDrawPool;
+  let pool: FumboPool;
   let drawRegistry: DrawRegistry;
 
   beforeEach(async () => {
@@ -32,13 +32,13 @@ describe("VeilDraw end-to-end", () => {
     const PrizePotFactory = await ethers.getContractFactory("PrizePot");
     prizePot = (await PrizePotFactory.deploy(await token.getAddress())) as unknown as PrizePot;
 
-    const PoolFactory = await ethers.getContractFactory("VeilDrawPool");
+    const PoolFactory = await ethers.getContractFactory("FumboPool");
     pool = (await PoolFactory.deploy(
       await token.getAddress(),
       await prizePot.getAddress(),
       POOL_CAP,
       MAX_DEPOSITORS,
-    )) as unknown as VeilDrawPool;
+    )) as unknown as FumboPool;
 
     const RegistryFactory = await ethers.getContractFactory("DrawRegistry");
     drawRegistry = (await RegistryFactory.deploy(

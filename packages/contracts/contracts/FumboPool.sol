@@ -16,7 +16,7 @@ interface IDrawRegistry {
     function claimed(uint32 drawId, address user) external view returns (bool);
 }
 
-contract VeilDrawPool is ZamaEthereumConfig {
+contract FumboPool is ZamaEthereumConfig {
     IERC7984 public immutable token;
     IPrizePot public immutable prizePot;
     uint64 public immutable poolCapPow2;

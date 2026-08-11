@@ -17,7 +17,7 @@ contract RngGrindTest is ZamaEthereumConfig {
         address caller;
     }
 
-    // Matches VeilDraw's intended value cap so we exercise the same bound
+    // Matches FumboPool's intended value cap so we exercise the same bound
     // the pool will use later.
     uint8 public constant BOUND_POW2 = 40;
 

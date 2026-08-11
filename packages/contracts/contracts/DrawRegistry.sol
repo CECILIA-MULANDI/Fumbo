@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {FHE, euint32, euint64, ebool} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-interface IVeilDrawPool {
+interface IFumboPool {
     function encTotalDeposits() external view returns (euint64);
     function depositorCount() external view returns (uint32);
     function depositorAt(uint32 index) external view returns (address);
@@ -21,7 +21,7 @@ interface IPrizePot {
 }
 
 contract DrawRegistry is ZamaEthereumConfig {
-    IVeilDrawPool public immutable pool;
+    IFumboPool public immutable pool;
     IPrizePot public immutable prizePot;
     uint64 public immutable drawInterval;
     uint64 public immutable claimTimeout;
@@ -61,7 +61,7 @@ contract DrawRegistry is ZamaEthereumConfig {
     error AlreadyExpired();
 
     constructor(
-        IVeilDrawPool pool_,
+        IFumboPool pool_,
         IPrizePot prizePot_,
         uint64 drawInterval_,
         uint64 claimTimeout_,
