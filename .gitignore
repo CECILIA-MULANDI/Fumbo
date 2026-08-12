@@ -23,3 +23,8 @@ types/
 .DS_Store
 .vscode/
 .idea/
+
+# Local scratch / skill outputs
+.brand-preview/
+packages/frontend/
+skills-lock.json
