@@ -5,7 +5,7 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 if (!projectId) {
   throw new Error(
-    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. Add it to .env.local — get one at https://cloud.reown.com",
+    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. Add it to .env.local. Get one at https://cloud.reown.com",
   );
 }
 
