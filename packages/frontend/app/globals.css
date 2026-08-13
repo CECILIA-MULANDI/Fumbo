@@ -165,8 +165,39 @@ body {
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+    scrollbar-color: var(--accent) var(--muted);
+    scrollbar-width: thin;
+  }
+
+  /* Keep anchor targets clear of the sticky nav (h-20 = 5rem) */
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
   h1, h2 {
     font-family: var(--font-heading), Georgia, "Times New Roman", serif;
+  }
+
+  /* WebKit fallback for older Safari that ignores scrollbar-color */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--muted);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 6px;
+    border: 2px solid var(--muted);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
   }
 }

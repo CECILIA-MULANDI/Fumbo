@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const code = `// Every balance is an encrypted euint64 handle.
 mapping(address => euint64) private _encBalance;
@@ -25,9 +26,16 @@ export function DevSection() {
               Balances are stored as encrypted <code className="font-mono text-base text-foreground">euint64</code> handles. Arithmetic runs on ciphertext through FHEVM. Only address-scoped ACL grants let a wallet decrypt.
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-5">
-              <Button variant="outline" className="h-11 rounded-md px-5 text-base font-medium">View contracts on GitHub</Button>
-              <a href="#" className="text-base font-medium text-primary hover:underline">
-                FHEVM docs
+              <a
+                href="https://github.com/CECILIA-MULANDI/veildraw"
+                target="_blank"
+                rel="noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-11 rounded-md px-5 text-base font-medium"
+                )}
+              >
+                View contracts on GitHub
               </a>
             </div>
           </div>

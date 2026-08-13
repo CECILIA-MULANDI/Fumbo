@@ -27,6 +27,9 @@ export function Hero() {
           <div className="flex flex-col gap-5 lg:col-span-7">
             <BalanceCardPreview />
             <ActivityFeed />
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+              Illustration — preview values, not live testnet data
+            </p>
           </div>
         </div>
       </div>

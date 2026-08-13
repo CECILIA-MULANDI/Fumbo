@@ -2,10 +2,10 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="px-6 py-16 md:px-12 lg:px-20 xl:px-32 2xl:px-40">
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-3">
           <div className="col-span-2 md:col-span-1">
-            <p className="text-sm font-semibold tracking-tight text-foreground">Fumbo</p>
-            <p className="mt-2 max-w-[28ch] text-xs leading-relaxed text-muted-foreground">
+            <p className="text-base font-semibold tracking-tight text-foreground">Fumbo</p>
+            <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-muted-foreground">
               Confidential no-loss prize savings on Ethereum, powered by FHEVM.
             </p>
           </div>
@@ -16,16 +16,9 @@ export function SiteFooter() {
             { label: "FAQ", href: "#faq" },
           ]} />
 
-          <FooterCol title="Developers" links={[
-            { label: "Contracts", href: "#" },
-            { label: "FHEVM docs", href: "#" },
-            { label: "Audit report", href: "#" },
-          ]} />
-
           <FooterCol title="About" links={[
-            { label: "GitHub", href: "#" },
-            { label: "Zama Season 4", href: "#" },
-            { label: "Contact", href: "#" },
+            { label: "GitHub", href: "https://github.com/CECILIA-MULANDI/veildraw" },
+            { label: "Contact", href: "https://x.com/kashortgirl" },
           ]} />
         </div>
 
@@ -49,13 +42,20 @@ function FooterCol({ title, links }: { title: string; links: { label: string; hr
         {title}
       </p>
       <ul className="mt-4 space-y-3">
-        {links.map((l) => (
-          <li key={l.label}>
-            <a href={l.href} className="text-sm text-foreground transition-colors hover:text-primary">
-              {l.label}
-            </a>
-          </li>
-        ))}
+        {links.map((l) => {
+          const isExternal = l.href.startsWith("http");
+          return (
+            <li key={l.label}>
+              <a
+                href={l.href}
+                {...(isExternal ? { target: "_blank", rel: "noreferrer" } : {})}
+                className="text-sm text-foreground transition-colors hover:text-primary"
+              >
+                {l.label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
