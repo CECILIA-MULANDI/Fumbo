@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { WalletConnectButton } from "@/components/wallet/connect-button";
 
 export function Hero() {
   return (
@@ -19,7 +20,7 @@ export function Hero() {
               Deposit cUSDT, keep your principal. Yield funds a weekly draw. Balances and winners stay encrypted. On Ethereum, via FHEVM.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button className="h-12 rounded-md px-6 text-base font-medium">Launch app</Button>
+              <WalletConnectButton className="h-12 rounded-md px-6 text-base font-medium" />
               <Button variant="outline" className="h-12 rounded-md px-6 text-base font-medium">Read the docs</Button>
             </div>
           </div>

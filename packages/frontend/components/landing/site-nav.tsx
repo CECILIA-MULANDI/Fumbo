@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { WalletConnectButton } from "@/components/wallet/connect-button";
 
 export function SiteNav() {
   return (
@@ -20,9 +20,7 @@ export function SiteNav() {
             FAQ
           </a>
         </div>
-        <Button className="h-11 rounded-md px-5 text-base font-medium">
-          Launch app
-        </Button>
+        <WalletConnectButton className="h-11 rounded-md px-5 text-base font-medium" />
       </div>
     </nav>
   );
