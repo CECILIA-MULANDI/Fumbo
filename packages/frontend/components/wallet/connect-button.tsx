@@ -1,6 +1,7 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,9 +9,14 @@ import { cn } from "@/lib/utils";
 export function WalletConnectButton({
   className,
   connectLabel = "Launch app",
+  connectedHref,
+  connectedHrefLabel = "Open app",
 }: {
   className?: string;
   connectLabel?: string;
+  /** If set, when the wallet is connected on the right network the button becomes a link to this URL instead of opening the account modal. */
+  connectedHref?: string;
+  connectedHrefLabel?: string;
 }) {
   return (
     <ConnectButton.Custom>
@@ -47,6 +53,22 @@ export function WalletConnectButton({
                       aria-hidden="true"
                     />
                     Wrong network
+                  </Button>
+                );
+              }
+
+              if (connectedHref) {
+                return (
+                  <Button
+                    render={<Link href={connectedHref} />}
+                    nativeButton={false}
+                    className={cn(className, "gap-2")}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full bg-accent-foreground/80"
+                      aria-hidden="true"
+                    />
+                    {connectedHrefLabel}
                   </Button>
                 );
               }

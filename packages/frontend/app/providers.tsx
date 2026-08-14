@@ -1,11 +1,17 @@
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
-import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import {
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+} from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ZamaProvider } from "@zama-fhe/react-sdk";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 
+import { zamaConfig } from "@/lib/fhevm/config";
 import { wagmiConfig } from "@/lib/wagmi";
 
 const rainbowTheme = {
@@ -31,7 +37,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={rainbowTheme}>{children}</RainbowKitProvider>
+        <RainbowKitProvider theme={rainbowTheme}>
+          <ZamaProvider config={zamaConfig}>{children}</ZamaProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

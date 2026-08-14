@@ -1,7 +1,7 @@
 const items = [
   {
     q: "Is my principal at risk?",
-    a: "No. Deposits stay in the pool and only the accrued yield is used as the prize. Withdraw your full deposit at any time — there are no lockups.",
+    a: "No. Deposits stay in the pool and only the accrued yield is used as the prize. Withdraw your full deposit at any time. There are no lockups.",
   },
   {
     q: "How is the winner chosen without revealing who deposited?",
@@ -21,7 +21,7 @@ const items = [
   },
   {
     q: "Where does the yield come from?",
-    a: "On testnet, the prize reserve is seeded by the deployer and accrues at a fixed simulated APR against the pool's encrypted total. The contract interface is yield-source agnostic — the mainnet path plugs the same accrual into a lending market like Aave.",
+    a: "On testnet, the prize reserve is seeded by the deployer and accrues at a fixed simulated APR against the pool's encrypted total. The contract interface is yield-source agnostic. The mainnet path plugs the same accrual into a lending market like Aave.",
   },
 ];
 

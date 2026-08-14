@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync-contracts": "node scripts/generate-contracts.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@tanstack/react-query": "^5.101.4",
+    "@zama-fhe/react-sdk": "^3.4.0",
+    "@zama-fhe/sdk": "^3.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",

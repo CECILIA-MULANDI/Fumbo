@@ -20,7 +20,10 @@ export function Hero() {
               Deposit cUSDT, keep your principal. Yield funds a weekly draw. Balances and winners stay encrypted. On Ethereum, via FHEVM.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <WalletConnectButton className="h-12 rounded-md px-6 text-base font-medium" />
+              <WalletConnectButton
+                className="h-12 rounded-md px-6 text-base font-medium"
+                connectedHref="/app"
+              />
               <Button variant="outline" className="h-12 rounded-md px-6 text-base font-medium">Read the docs</Button>
             </div>
           </div>
@@ -29,7 +32,7 @@ export function Hero() {
             <BalanceCardPreview />
             <ActivityFeed />
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-              Illustration — preview values, not live testnet data
+              Illustration. Preview values, not live testnet data.
             </p>
           </div>
         </div>
