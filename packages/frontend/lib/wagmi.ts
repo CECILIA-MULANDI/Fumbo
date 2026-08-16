@@ -1,4 +1,10 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import {
+  injectedWallet,
+  metaMaskWallet,
+  rainbowWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
 import { sepolia } from "wagmi/chains";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -13,5 +19,11 @@ export const wagmiConfig = getDefaultConfig({
   appName: "Fumbo",
   projectId,
   chains: [sepolia],
+  wallets: [
+    {
+      groupName: "Recommended",
+      wallets: [metaMaskWallet, rainbowWallet, walletConnectWallet, injectedWallet],
+    },
+  ],
   ssr: true,
 });
