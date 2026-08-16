@@ -1,13 +1,19 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useDecryptPublicValues } from "@zama-fhe/react-sdk";
 import { useEffect, useState } from "react";
+import { formatUnits } from "viem";
 import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { drawRegistry, fumboPool } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
+
+const CUSDT_DECIMALS = 6;
+const RECENT_DRAWS = 5;
+const STATUS_PENDING = 0;
 
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "Ready";
@@ -19,6 +25,85 @@ function formatCountdown(seconds: number): string {
   if (h > 0) return `${h}h ${m}m ${s}s`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+function formatRelative(timestamp: number, now: number): string {
+  const diff = now - timestamp;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function DrawRow({ drawId, now }: { drawId: number; now: number }) {
+  const { data: raw } = useReadContract({
+    ...drawRegistry,
+    functionName: "draws",
+    args: [BigInt(drawId)],
+  });
+  const { data: prizeHandle } = useReadContract({
+    ...drawRegistry,
+    functionName: "encPrizeAmount",
+    args: [drawId],
+  });
+
+  const decrypt = useDecryptPublicValues();
+  const decryptMutate = decrypt.mutate;
+  useEffect(() => {
+    if (!prizeHandle) return;
+    decryptMutate([prizeHandle]);
+  }, [prizeHandle, decryptMutate]);
+
+  const cleartext =
+    prizeHandle && decrypt.data?.clearValues
+      ? (decrypt.data.clearValues[prizeHandle] as bigint | undefined)
+      : undefined;
+
+  const timestamp = raw ? Number(raw[0]) : undefined;
+  const status = raw ? Number(raw[2]) : undefined;
+  const hasAnyClaim = raw ? Boolean(raw[3]) : false;
+
+  let statusLabel: string;
+  let statusClass: string;
+  if (status === undefined) {
+    statusLabel = "…";
+    statusClass = "text-muted-foreground";
+  } else if (status !== STATUS_PENDING) {
+    statusLabel = hasAnyClaim ? "Claimed" : "Expired";
+    statusClass = "text-muted-foreground";
+  } else if (hasAnyClaim) {
+    statusLabel = "Claimed";
+    statusClass = "text-accent";
+  } else {
+    statusLabel = "Pending";
+    statusClass = "text-foreground";
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-sm font-medium text-foreground">Draw #{drawId}</span>
+        <span className="text-xs text-muted-foreground">
+          {timestamp !== undefined ? formatRelative(timestamp, now) : "loading…"}
+        </span>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="font-mono text-sm tabular-nums text-foreground">
+            {cleartext !== undefined
+              ? `${formatUnits(cleartext, CUSDT_DECIMALS)} cUSDT`
+              : decrypt.isPending
+              ? "decrypting…"
+              : "—"}
+          </span>
+          <span className="text-xs text-muted-foreground">prize</span>
+        </div>
+        <span className={`font-mono text-xs uppercase tracking-wider ${statusClass}`}>
+          {statusLabel}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function DrawsCard() {
@@ -54,6 +139,12 @@ export function DrawsCard() {
   const secondsUntilNext = nextDrawAt !== undefined ? nextDrawAt - now : undefined;
   const ready = secondsUntilNext !== undefined && secondsUntilNext <= 0;
   const noDepositors = depositorCount !== undefined && Number(depositorCount) === 0;
+
+  const count = drawCount !== undefined ? Number(drawCount) : 0;
+  const recentIds: number[] = [];
+  for (let i = count - 1; i >= Math.max(0, count - RECENT_DRAWS); i--) {
+    recentIds.push(i);
+  }
 
   const {
     data: triggerHash,
@@ -135,7 +226,7 @@ export function DrawsCard() {
           </Button>
         </div>
 
-        {drawCount !== undefined && Number(drawCount) === 0 && (
+        {count === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-5 py-8 text-center">
             <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
               No draws yet
@@ -143,6 +234,12 @@ export function DrawsCard() {
             <p className="mt-2 text-sm text-muted-foreground">
               Once the first draw runs, prizes and your eligibility appear here.
             </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentIds.map((id) => (
+              <DrawRow key={id} drawId={id} now={now} />
+            ))}
           </div>
         )}
 
