@@ -4,13 +4,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEncrypt } from "@zama-fhe/react-sdk";
 import { useEffect, useState } from "react";
 import { parseUnits } from "viem";
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fumboPool } from "@/lib/contracts";
+import { firstMessage } from "@/lib/errors";
 
 const CUSDT_DECIMALS = 6;
 
@@ -22,12 +23,20 @@ export function WithdrawCard() {
   const parsed = Number(amount);
   const invalid = amount !== "" && (!Number.isFinite(parsed) || parsed <= 0);
 
+  const { data: isDepositor } = useReadContract({
+    ...fumboPool,
+    functionName: "isDepositor",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
   const encrypt = useEncrypt();
 
   const {
     data: withdrawHash,
     writeContractAsync,
     isPending: withdrawPending,
+    error: withdrawError,
     reset: resetWithdraw,
   } = useWriteContract();
   const { isLoading: withdrawConfirming, isSuccess: withdrawSuccess } =
@@ -68,8 +77,11 @@ export function WithdrawCard() {
     });
   }
 
+  const errorMessage = firstMessage(encrypt.error, withdrawError);
+
   const busy = encrypt.isPending || withdrawPending || withdrawConfirming;
-  const withdrawDisabled = amount === "" || invalid || busy;
+  const notDepositor = isDepositor === false;
+  const withdrawDisabled = amount === "" || invalid || busy || notDepositor;
 
   let primaryLabel: string;
   if (encrypt.isPending) {
@@ -114,7 +126,7 @@ export function WithdrawCard() {
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              disabled={busy}
+              disabled={busy || notDepositor}
               aria-invalid={invalid || undefined}
               className="h-14 rounded-lg pr-20 font-mono text-2xl tabular-nums"
             />
@@ -125,6 +137,17 @@ export function WithdrawCard() {
           {invalid && (
             <p className="text-sm leading-snug text-destructive">Enter a positive amount.</p>
           )}
+          {notDepositor && (
+            <p className="text-sm leading-snug text-muted-foreground">
+              Nothing to withdraw yet. Deposit first.
+            </p>
+          )}
+          {!invalid && !notDepositor && (
+            <p className="text-sm leading-snug text-muted-foreground">
+              Requests above your pool balance are capped automatically. You&apos;ll receive at most
+              what you have in the pool.
+            </p>
+          )}
         </div>
 
         <Button
@@ -134,6 +157,30 @@ export function WithdrawCard() {
         >
           {primaryLabel}
         </Button>
+
+        {withdrawSuccess && (
+          <div role="status" className="rounded-lg border border-accent/40 bg-accent/10 p-4">
+            <div className="flex items-start gap-3">
+              <span
+                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
+                aria-hidden="true"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Withdrawal confirmed</p>
+                <p className="text-sm leading-[1.6] text-muted-foreground">
+                  Your encrypted balances are updating. Reveal your pool balance and wallet balance
+                  above to see the new amounts.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <p role="alert" className="text-sm text-destructive">
+            {errorMessage}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
