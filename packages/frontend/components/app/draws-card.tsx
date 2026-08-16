@@ -1,11 +1,13 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { drawRegistry } from "@/lib/contracts";
+import { drawRegistry, fumboPool } from "@/lib/contracts";
+import { firstMessage } from "@/lib/errors";
 
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "Ready";
@@ -20,6 +22,8 @@ function formatCountdown(seconds: number): string {
 }
 
 export function DrawsCard() {
+  const queryClient = useQueryClient();
+
   const { data: drawCount } = useReadContract({
     ...drawRegistry,
     functionName: "drawCount",
@@ -31,6 +35,10 @@ export function DrawsCard() {
   const { data: drawInterval } = useReadContract({
     ...drawRegistry,
     functionName: "drawInterval",
+  });
+  const { data: depositorCount } = useReadContract({
+    ...fumboPool,
+    functionName: "depositorCount",
   });
 
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -45,6 +53,53 @@ export function DrawsCard() {
       : undefined;
   const secondsUntilNext = nextDrawAt !== undefined ? nextDrawAt - now : undefined;
   const ready = secondsUntilNext !== undefined && secondsUntilNext <= 0;
+  const noDepositors = depositorCount !== undefined && Number(depositorCount) === 0;
+
+  const {
+    data: triggerHash,
+    writeContractAsync,
+    isPending: triggerPending,
+    error: triggerError,
+    reset: resetTrigger,
+  } = useWriteContract();
+  const { isLoading: triggerConfirming, isSuccess: triggerSuccess } = useWaitForTransactionReceipt({
+    hash: triggerHash,
+    query: { enabled: !!triggerHash },
+  });
+
+  useEffect(() => {
+    if (!triggerSuccess) return;
+    queryClient.invalidateQueries();
+    const t = setTimeout(() => resetTrigger(), 5000);
+    return () => clearTimeout(t);
+  }, [triggerSuccess, queryClient, resetTrigger]);
+
+  async function handleTrigger() {
+    await writeContractAsync({
+      ...drawRegistry,
+      functionName: "triggerDraw",
+    });
+  }
+
+  const busy = triggerPending || triggerConfirming;
+  const triggerDisabled = !ready || noDepositors || busy;
+
+  let triggerLabel: string;
+  if (triggerPending) {
+    triggerLabel = "Confirm in wallet…";
+  } else if (triggerConfirming) {
+    triggerLabel = "Running draw…";
+  } else if (triggerSuccess) {
+    triggerLabel = "Draw complete ✓";
+  } else if (!ready) {
+    triggerLabel = "Not yet";
+  } else if (noDepositors) {
+    triggerLabel = "No depositors";
+  } else {
+    triggerLabel = "Trigger draw";
+  }
+
+  const errorMessage = firstMessage(triggerError);
 
   return (
     <Card className="[--card-spacing:--spacing(6)]">
@@ -71,11 +126,12 @@ export function DrawsCard() {
             </span>
           </div>
           <Button
-            variant={ready ? "default" : "outline"}
+            variant={ready && !noDepositors ? "default" : "outline"}
             className="h-10 rounded-md px-4"
-            disabled
+            onClick={handleTrigger}
+            disabled={triggerDisabled}
           >
-            Trigger draw
+            {triggerLabel}
           </Button>
         </div>
 
@@ -88,6 +144,29 @@ export function DrawsCard() {
               Once the first draw runs, prizes and your eligibility appear here.
             </p>
           </div>
+        )}
+
+        {triggerSuccess && (
+          <div role="status" className="rounded-lg border border-accent/40 bg-accent/10 p-4">
+            <div className="flex items-start gap-3">
+              <span
+                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
+                aria-hidden="true"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Draw triggered</p>
+                <p className="text-sm leading-[1.6] text-muted-foreground">
+                  A winner has been selected on encrypted balances. Check below to see if you won.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <p role="alert" className="text-sm text-destructive">
+            {errorMessage}
+          </p>
         )}
       </CardContent>
     </Card>
