@@ -426,7 +426,7 @@ export const fumboPoolAbi = [
 ] as const;
 
 export const fumboPoolAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x50bef888b603982855FE0E04518D4f4B78D963f1"
+  "11155111": "0x6ab465A82dD13badF2C06385AAc8cEbf419a0EFa"
 } as const;
 
 export const mockConfidentialUSDTAbi = [
@@ -1501,7 +1501,7 @@ export const drawRegistryAbi = [
 ] as const;
 
 export const drawRegistryAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x1714FC48648d01Bd2bE13be4AA206D5e1a0ffBdD"
+  "11155111": "0x06491d751879757AA2b28dC633FD057A1798EdcF"
 } as const;
 
 export const prizePotAbi = [
@@ -1820,6 +1820,6 @@ export const prizePotAbi = [
 ] as const;
 
 export const prizePotAddress: Record<number, `0x${string}`> = {
-  "11155111": "0xe4A95e38DD0300D9DBD5F8FDd1Dd3a75B919fFae"
+  "11155111": "0x9448a49CC066A8A5C50dfE5582F8C31f64cA5A74"
 } as const;
 
