@@ -7,7 +7,7 @@ import { parseUnits } from "viem";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fumboPool } from "@/lib/contracts";
@@ -99,21 +99,11 @@ export function WithdrawCard() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Withdraw
-        </p>
-        <CardTitle className="mt-1 text-2xl">Take your principal back</CardTitle>
-        <CardDescription>
-          Your deposit is never at risk. Withdraw any amount up to your pool balance. The amount
-          stays encrypted end-to-end.
-        </CardDescription>
+        <CardTitle className="text-2xl">Take your principal back</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="withdraw-amount"
-            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-          >
+          <Label htmlFor="withdraw-amount" className="sr-only">
             Amount
           </Label>
           <div className="relative">
@@ -140,12 +130,6 @@ export function WithdrawCard() {
           {notDepositor && (
             <p className="text-sm leading-snug text-muted-foreground">
               Nothing to withdraw yet. Deposit first.
-            </p>
-          )}
-          {!invalid && !notDepositor && (
-            <p className="text-sm leading-snug text-muted-foreground">
-              Requests above your pool balance are capped automatically. You&apos;ll receive at most
-              what you have in the pool.
             </p>
           )}
         </div>
