@@ -1,7 +1,7 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-const POOL_CAP_POW2 = BigInt(process.env.POOL_CAP_POW2 ?? 1n << 30n);
+const POOL_CAP_POW2 = BigInt(process.env.POOL_CAP_POW2 ?? 1n << 40n);
 const MAX_DEPOSITORS = Number(process.env.MAX_DEPOSITORS ?? 100);
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
