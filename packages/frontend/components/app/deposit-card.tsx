@@ -14,7 +14,7 @@ import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagm
 
 import { FaucetButton } from "@/components/app/faucet-button";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cUSDT, fumboPool } from "@/lib/contracts";
@@ -141,18 +141,11 @@ export function DepositCard() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-accent">
-          Deposit
-        </p>
-        <CardTitle className="mt-1 text-2xl">Add to the pool</CardTitle>
-        <CardDescription>
-          Deposit cUSDT. Your amount is encrypted before it hits the chain. Nobody, not even the pool
-          contract, sees the number in the clear.
-        </CardDescription>
+        <CardTitle className="text-2xl">Add to the pool</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="deposit-amount" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <Label htmlFor="deposit-amount" className="sr-only">
             Amount
           </Label>
           <div className="relative">

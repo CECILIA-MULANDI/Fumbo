@@ -9,7 +9,7 @@ import { useState } from "react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cUSDT } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -65,13 +65,7 @@ export function WalletBalanceCard() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-accent">
-          Wallet balance
-        </p>
-        <CardTitle className="mt-1 text-2xl">cUSDT available</CardTitle>
-        <CardDescription>
-          Your confidential cUSDT balance in this wallet. This is what you can deposit into the pool.
-        </CardDescription>
+        <CardTitle className="text-2xl">cUSDT available</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end justify-between gap-4">

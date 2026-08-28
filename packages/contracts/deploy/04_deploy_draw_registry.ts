@@ -2,7 +2,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const DRAW_INTERVAL_SECS = BigInt(process.env.DRAW_INTERVAL_SECS ?? 900);
-const CLAIM_TIMEOUT_SECS = BigInt(process.env.CLAIM_TIMEOUT_SECS ?? 3600);
+const CLAIM_TIMEOUT_SECS = BigInt(process.env.CLAIM_TIMEOUT_SECS ?? 86400);
 const APR_BPS = Number(process.env.APR_BPS ?? 500);
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

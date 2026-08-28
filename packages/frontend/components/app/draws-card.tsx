@@ -14,6 +14,7 @@ import { firstMessage } from "@/lib/errors";
 const CUSDT_DECIMALS = 6;
 const RECENT_DRAWS = 5;
 const STATUS_PENDING = 0;
+const EXPIRE_UI_GRACE_SECS = 300;
 
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "Ready";
@@ -35,7 +36,17 @@ function formatRelative(timestamp: number, now: number): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function DrawRow({ drawId, now }: { drawId: number; now: number }) {
+function DrawRow({
+  drawId,
+  now,
+  claimTimeout,
+}: {
+  drawId: number;
+  now: number;
+  claimTimeout: number | undefined;
+}) {
+  const queryClient = useQueryClient();
+
   const { data: raw } = useReadContract({
     ...drawRegistry,
     functionName: "draws",
@@ -63,6 +74,48 @@ function DrawRow({ drawId, now }: { drawId: number; now: number }) {
   const status = raw ? Number(raw[2]) : undefined;
   const hasAnyClaim = raw ? Boolean(raw[3]) : false;
 
+  const expirableAt =
+    timestamp !== undefined && claimTimeout !== undefined ? timestamp + claimTimeout : undefined;
+  const uiExpirableAt = expirableAt !== undefined ? expirableAt + EXPIRE_UI_GRACE_SECS : undefined;
+  const isPending = status === STATUS_PENDING;
+  const canExpire = isPending && uiExpirableAt !== undefined && now > uiExpirableAt;
+  const windowClosesIn =
+    isPending && expirableAt !== undefined && now <= expirableAt ? expirableAt - now : undefined;
+  const [confirmingExpire, setConfirmingExpire] = useState(false);
+  const showingConfirm = canExpire && confirmingExpire;
+
+  const {
+    data: expireHash,
+    writeContractAsync: expireAsync,
+    isPending: expirePending,
+    error: expireError,
+    reset: resetExpire,
+  } = useWriteContract();
+  const { isLoading: expireConfirming, isSuccess: expireSuccess } = useWaitForTransactionReceipt({
+    hash: expireHash,
+    query: { enabled: !!expireHash },
+  });
+
+  useEffect(() => {
+    if (!expireSuccess) return;
+    queryClient.invalidateQueries();
+    const t = setTimeout(() => resetExpire(), 5000);
+    return () => clearTimeout(t);
+  }, [expireSuccess, queryClient, resetExpire]);
+
+  async function handleExpire() {
+    await expireAsync({
+      ...drawRegistry,
+      functionName: "expireDraw",
+      args: [drawId],
+    });
+  }
+
+  const expireBusy = expirePending || expireConfirming;
+  let expireLabel = "Roll over";
+  if (expirePending) expireLabel = "Confirm…";
+  else if (expireConfirming) expireLabel = "Rolling over…";
+
   let statusLabel: string;
   let statusClass: string;
   if (status === undefined) {
@@ -79,29 +132,80 @@ function DrawRow({ drawId, now }: { drawId: number; now: number }) {
     statusClass = "text-foreground";
   }
 
+  const expireErrorMessage = firstMessage(expireError);
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
-      <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-sm font-medium text-foreground">Draw #{drawId}</span>
-        <span className="text-xs text-muted-foreground">
-          {timestamp !== undefined ? formatRelative(timestamp, now) : "loading…"}
-        </span>
-      </div>
-      <div className="flex items-center gap-6">
-        <div className="flex flex-col items-end gap-0.5">
-          <span className="font-mono text-sm tabular-nums text-foreground">
-            {cleartext !== undefined
-              ? `${formatUnits(cleartext, CUSDT_DECIMALS)} cUSDT`
-              : decrypt.isPending
-              ? "decrypting…"
-              : "—"}
+    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-mono text-sm font-medium text-foreground">Draw #{drawId}</span>
+          <span className="text-xs text-muted-foreground">
+            {timestamp !== undefined ? formatRelative(timestamp, now) : "loading…"}
           </span>
-          <span className="text-xs text-muted-foreground">prize</span>
         </div>
-        <span className={`font-mono text-xs uppercase tracking-wider ${statusClass}`}>
-          {statusLabel}
-        </span>
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="font-mono text-sm tabular-nums text-foreground">
+              {cleartext !== undefined
+                ? `${formatUnits(cleartext, CUSDT_DECIMALS)} cUSDT`
+                : decrypt.isPending
+                ? "decrypting…"
+                : "—"}
+            </span>
+            <span className="text-xs text-muted-foreground">prize</span>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`font-mono text-xs uppercase tracking-wider ${statusClass}`}>
+              {statusLabel}
+            </span>
+            {canExpire && !showingConfirm && (
+              <Button
+                variant="outline"
+                className="h-7 rounded-md px-2 text-xs"
+                onClick={() => setConfirmingExpire(true)}
+                disabled={expireBusy}
+              >
+                {expireLabel}
+              </Button>
+            )}
+            {showingConfirm && (
+              <div className="flex flex-col items-end gap-1">
+                <span className="max-w-64 text-right text-sm text-muted-foreground">
+                  Rolls prize into next draw. Winner loses eligibility.
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    className="h-7 rounded-md px-2 text-xs"
+                    onClick={() => setConfirmingExpire(false)}
+                    disabled={expireBusy}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="h-7 rounded-md px-2 text-xs"
+                    onClick={handleExpire}
+                    disabled={expireBusy}
+                  >
+                    {expirePending || expireConfirming ? expireLabel : "Confirm expire"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {windowClosesIn !== undefined && (
+              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                Closes in {formatCountdown(windowClosesIn)}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
+      {expireErrorMessage && (
+        <p role="alert" className="text-xs text-destructive">
+          {expireErrorMessage}
+        </p>
+      )}
     </div>
   );
 }
@@ -120,6 +224,10 @@ export function DrawsCard() {
   const { data: drawInterval } = useReadContract({
     ...drawRegistry,
     functionName: "drawInterval",
+  });
+  const { data: claimTimeout } = useReadContract({
+    ...drawRegistry,
+    functionName: "claimTimeout",
   });
   const { data: depositorCount } = useReadContract({
     ...fumboPool,
@@ -195,13 +303,10 @@ export function DrawsCard() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Draws
-        </p>
-        <CardTitle className="mt-1 text-2xl">Recent draws & prizes</CardTitle>
+        <CardTitle className="text-2xl">Recent draws & prizes</CardTitle>
         <CardDescription>
-          The pool runs a draw on a fixed cadence. Anyone can trigger the next one once the window
-          opens. Only you learn if you won.
+          Fixed cadence. Anyone can trigger a draw or roll over an unclaimed one. Only you learn if
+          you won.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -238,7 +343,12 @@ export function DrawsCard() {
         ) : (
           <div className="flex flex-col gap-2">
             {recentIds.map((id) => (
-              <DrawRow key={id} drawId={id} now={now} />
+              <DrawRow
+                key={id}
+                drawId={id}
+                now={now}
+                claimTimeout={claimTimeout !== undefined ? Number(claimTimeout) : undefined}
+              />
             ))}
           </div>
         )}
