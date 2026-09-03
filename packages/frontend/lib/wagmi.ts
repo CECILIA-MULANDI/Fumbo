@@ -5,6 +5,7 @@ import {
   rainbowWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
+import { http } from "wagmi";
 import { sepolia } from "wagmi/chains";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -19,6 +20,9 @@ export const wagmiConfig = getDefaultConfig({
   appName: "Fumbo",
   projectId,
   chains: [sepolia],
+  transports: {
+    [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
+  },
   wallets: [
     {
       groupName: "Recommended",
