@@ -4,6 +4,7 @@ import { ConnectGate } from "@/components/app/connect-gate";
 import { DepositCard } from "@/components/app/deposit-card";
 import { DrawsCard } from "@/components/app/draws-card";
 import { WalletBalanceCard } from "@/components/app/wallet-balance-card";
+import { WinnerReveal } from "@/components/app/winner-reveal";
 import { WithdrawCard } from "@/components/app/withdraw-card";
 
 export default function AppPage() {
@@ -18,6 +19,8 @@ export default function AppPage() {
                 Your pool.
               </h1>
             </header>
+
+            <WinnerReveal />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <BalanceCard />
