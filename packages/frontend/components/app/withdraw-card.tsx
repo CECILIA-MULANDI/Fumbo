@@ -1,9 +1,9 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useEncrypt } from "@zama-fhe/react-sdk";
+import { useDecryptValues, useEncrypt, useHasPermit } from "@zama-fhe/react-sdk";
 import { useEffect, useState } from "react";
-import { parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,28 @@ export function WithdrawCard() {
     args: address ? [address] : undefined,
     query: { enabled: !!address },
   });
+
+  const { data: balanceHandle } = useReadContract({
+    ...fumboPool,
+    functionName: "encBalanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!isDepositor },
+  });
+
+  const { data: hasPoolPermit } = useHasPermit({
+    contractAddresses: [fumboPool.address],
+  });
+
+  const balanceDecryptInputs = balanceHandle && hasPoolPermit
+    ? [{ encryptedValue: balanceHandle, contractAddress: fumboPool.address }]
+    : [];
+  const { data: balanceDecrypted } = useDecryptValues(balanceDecryptInputs, {
+    enabled: balanceDecryptInputs.length > 0,
+  });
+  const poolBalance =
+    balanceHandle && balanceDecrypted && typeof balanceDecrypted[balanceHandle] === "bigint"
+      ? (balanceDecrypted[balanceHandle] as bigint)
+      : undefined;
 
   const encrypt = useEncrypt();
 
@@ -101,7 +123,10 @@ export function WithdrawCard() {
 
   const busy = encrypt.isPending || withdrawPending || withdrawConfirming;
   const notDepositor = isDepositor === false;
-  const withdrawDisabled = amount === "" || invalid || busy || notDepositor;
+  const insufficientPool =
+    poolBalance !== undefined && amountRaw !== undefined && amountRaw > poolBalance;
+  const withdrawDisabled =
+    amount === "" || invalid || busy || notDepositor || insufficientPool;
 
   let primaryLabel: string;
   if (encrypt.isPending) {
@@ -154,10 +179,16 @@ export function WithdrawCard() {
               Nothing to withdraw yet. Deposit first.
             </p>
           )}
-          {!invalid && !notDepositor && (
+          {!invalid && !notDepositor && insufficientPool && poolBalance !== undefined && (
+            <p className="text-sm leading-snug text-destructive">
+              More than your pool balance. You have {formatUnits(poolBalance, CUSDT_DECIMALS)}{" "}
+              cUSDT deposited.
+            </p>
+          )}
+          {!invalid && !notDepositor && !insufficientPool && poolBalance === undefined && (
             <p className="text-xs leading-[1.55] text-muted-foreground">
-              Balances are encrypted, so the contract cannot check your amount before you sign.
-              Any request larger than your balance is clamped to your balance on chain via
+              Reveal your Encrypted principal above for instant validation. Without it, the
+              contract still clamps any request to your balance via
               <span className="font-mono"> FHE.min</span>, so you can never overdraw.
             </p>
           )}
