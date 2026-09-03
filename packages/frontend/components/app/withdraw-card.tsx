@@ -60,7 +60,7 @@ export function WithdrawCard() {
     if (!withdrawSuccess) return;
     toast.success({
       title: "Withdrawal confirmed",
-      description: "Your encrypted balances are updating. Reveal them above to see the new amounts.",
+      description: "Amount transferred is the minimum of what you asked for and your actual balance. Reveal your balances above to see the new numbers.",
     });
     queryClient.invalidateQueries();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot on tx confirm
@@ -112,8 +112,10 @@ export function WithdrawCard() {
     primaryLabel = "Withdrawing…";
   } else if (withdrawSuccess) {
     primaryLabel = "Withdrawn ✓";
+  } else if (parsed > 0) {
+    primaryLabel = `Withdraw up to ${parsed} cUSDT`;
   } else {
-    primaryLabel = `Withdraw ${parsed > 0 ? `${parsed} cUSDT` : "cUSDT"}`;
+    primaryLabel = "Withdraw cUSDT";
   }
 
   return (
@@ -150,6 +152,13 @@ export function WithdrawCard() {
           {notDepositor && (
             <p className="text-sm leading-snug text-muted-foreground">
               Nothing to withdraw yet. Deposit first.
+            </p>
+          )}
+          {!invalid && !notDepositor && (
+            <p className="text-xs leading-[1.55] text-muted-foreground">
+              Balances are encrypted, so the contract cannot check your amount before you sign.
+              Any request larger than your balance is clamped to your balance on chain via
+              <span className="font-mono"> FHE.min</span>, so you can never overdraw.
             </p>
           )}
         </div>
