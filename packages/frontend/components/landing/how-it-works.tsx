@@ -8,12 +8,20 @@ const steps = [
     body: "The pool's total earns lending yield. Interest compounds into an encrypted prize reserve on-chain.",
   },
   {
-    title: "One draw per week",
-    body: "A verifiable random weight-selects one depositor. The winner index and prize amount are computed on ciphertext.",
+    title: "Anyone triggers the draw",
+    body: "Every 15 minutes the draw window opens. Any wallet can call triggerDraw and pay the gas. No admin, no keeper, no scheduled job.",
+  },
+  {
+    title: "Weighted selection on ciphertext",
+    body: "A verifiable random cursor sweeps the encrypted balances. The winner index and prize amount are computed without ever decrypting a deposit.",
   },
   {
     title: "Winner decrypts privately",
-    body: "Only the winner's wallet holds the decryption key. Everyone else sees a completed draw with no visible recipient.",
+    body: "Only the winner's wallet can decrypt the isWinner flag. Everyone else sees a completed draw with no visible recipient. Claim within 24 hours.",
+  },
+  {
+    title: "Withdraw any time",
+    body: "Principal is always withdrawable, encrypted end to end. If your draw goes unclaimed, anyone can roll the prize into the next round.",
   },
 ];
 
@@ -27,7 +35,7 @@ export function HowItWorks() {
               How it works
             </p>
             <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-foreground md:text-5xl">
-              Four steps. Zero disclosed balances.
+              Six steps. Zero disclosed balances.
             </h2>
             <p className="max-w-[46ch] text-lg leading-[1.65] text-muted-foreground">
               Every step runs over encrypted state. The pool never learns your balance, and the network never sees who won.

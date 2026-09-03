@@ -24,7 +24,20 @@ export function Hero() {
                 className="h-12 rounded-md px-6 text-base font-medium"
                 connectedHref="/app"
               />
-              <Button variant="outline" className="h-12 rounded-md px-6 text-base font-medium">Read the docs</Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <a
+                    href="https://github.com/CECILIA-MULANDI/Fumbo#readme"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+                className="h-12 rounded-md px-6 text-base font-medium"
+              >
+                Read the docs
+              </Button>
             </div>
           </div>
 
