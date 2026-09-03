@@ -11,6 +11,7 @@ import { ZamaProvider } from "@zama-fhe/react-sdk";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 
+import { ToastProvider } from "@/components/ui/toast";
 import { zamaConfig } from "@/lib/fhevm/config";
 import { wagmiConfig } from "@/lib/wagmi";
 
@@ -38,7 +39,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={rainbowTheme}>
-          <ZamaProvider config={zamaConfig}>{children}</ZamaProvider>
+          <ZamaProvider config={zamaConfig}>
+            <ToastProvider>{children}</ToastProvider>
+          </ZamaProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
