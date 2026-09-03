@@ -48,10 +48,12 @@ contract DrawRegistry is ZamaEthereumConfig {
     mapping(uint32 => euint32) private _encWinnerIndex;
     mapping(uint32 => euint64) private _encPrizeAmount;
     mapping(uint32 => mapping(address => bool)) public claimed;
+    mapping(uint32 => mapping(address => ebool)) public revealedIsWinner;
 
     event DrawTriggered(uint32 indexed drawId, uint256 prevrandao, euint64 indexed encPrizeAmount, euint32 indexed encWinnerIndex);
     event ClaimMarked(uint32 indexed drawId, address indexed user);
     event DrawExpired(uint32 indexed drawId, bool hadClaim);
+    event WinnerRevealed(uint32 indexed drawId, address indexed user, ebool indexed result);
 
     error DrawNotReady();
     error DrawNotExpirable();
@@ -144,6 +146,8 @@ contract DrawRegistry is ZamaEthereumConfig {
         }
         FHE.allowThis(result);
         FHE.allow(result, msg.sender);
+        revealedIsWinner[drawId][user] = result;
+        emit WinnerRevealed(drawId, user, result);
         return result;
     }
 

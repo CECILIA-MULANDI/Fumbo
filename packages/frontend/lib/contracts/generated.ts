@@ -426,7 +426,7 @@ export const fumboPoolAbi = [
 ] as const;
 
 export const fumboPoolAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x6ab465A82dD13badF2C06385AAc8cEbf419a0EFa"
+  "11155111": "0xc8201246d27bF6647d02B621194F7F915347882C"
 } as const;
 
 export const mockConfidentialUSDTAbi = [
@@ -1256,6 +1256,31 @@ export const drawRegistryAbi = [
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "drawId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "ebool",
+        "name": "result",
+        "type": "bytes32"
+      }
+    ],
+    "name": "WinnerRevealed",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "aprBps",
     "outputs": [
@@ -1492,6 +1517,30 @@ export const drawRegistryAbi = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "revealedIsWinner",
+    "outputs": [
+      {
+        "internalType": "ebool",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "triggerDraw",
     "outputs": [],
@@ -1501,7 +1550,7 @@ export const drawRegistryAbi = [
 ] as const;
 
 export const drawRegistryAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x06491d751879757AA2b28dC633FD057A1798EdcF"
+  "11155111": "0x427fB2C8ADe513e7bf0A0d5F005746E957236C97"
 } as const;
 
 export const prizePotAbi = [
@@ -1820,6 +1869,6 @@ export const prizePotAbi = [
 ] as const;
 
 export const prizePotAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x9448a49CC066A8A5C50dfE5582F8C31f64cA5A74"
+  "11155111": "0xa134A031655206FE124762Cc5842a986f301bc5c"
 } as const;
 
