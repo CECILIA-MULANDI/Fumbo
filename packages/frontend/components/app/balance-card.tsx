@@ -5,11 +5,12 @@ import {
   useGrantPermit,
   useHasPermit,
 } from "@zama-fhe/react-sdk";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import { fumboPool } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -17,6 +18,7 @@ const CUSDT_DECIMALS = 6;
 
 export function BalanceCard() {
   const { address } = useAccount();
+  const toast = useToast();
   const [revealed, setRevealed] = useState(false);
 
   const { data: isDepositor, error: isDepositorError } = useReadContract({
@@ -67,17 +69,27 @@ export function BalanceCard() {
       }
       setRevealed(true);
     } catch {
-      // grantPermit.error is set by the mutation; surfaced by the error banner
+      // grantPermit.error is set by the mutation; surfaced by the error toast
     }
   }
 
-  const errorMessage = firstMessage(
-    isDepositorError,
-    handleError,
-    permitError,
-    decryptError,
-    grantPermit.error,
-  );
+  useEffect(() => {
+    if (!grantPermit.error) return;
+    toast.error({
+      title: "Authorization failed",
+      description: firstMessage(grantPermit.error) ?? undefined,
+    });
+  }, [grantPermit.error, toast]);
+
+  useEffect(() => {
+    if (!decryptError) return;
+    toast.error({
+      title: "Balance decrypt failed",
+      description: firstMessage(decryptError) ?? undefined,
+    });
+  }, [decryptError, toast]);
+
+  const errorMessage = firstMessage(isDepositorError, handleError, permitError);
 
   const showCleartext = revealed && cleartext !== undefined;
   const label = permitLoading

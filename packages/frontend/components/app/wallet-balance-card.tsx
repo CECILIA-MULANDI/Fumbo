@@ -5,11 +5,12 @@ import {
   useGrantPermit,
   useHasPermit,
 } from "@zama-fhe/react-sdk";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import { cUSDT } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -17,6 +18,7 @@ const CUSDT_DECIMALS = 6;
 
 export function WalletBalanceCard() {
   const { address } = useAccount();
+  const toast = useToast();
   const [revealed, setRevealed] = useState(false);
 
   const {
@@ -45,11 +47,27 @@ export function WalletBalanceCard() {
       }
       setRevealed(true);
     } catch {
-      // grantPermit.error is set by the mutation; surfaced by the error banner
+      // grantPermit.error is set by the mutation; surfaced by the error toast
     }
   }
 
-  const errorMessage = firstMessage(permitError, balanceError, grantPermit.error);
+  useEffect(() => {
+    if (!grantPermit.error) return;
+    toast.error({
+      title: "Authorization failed",
+      description: firstMessage(grantPermit.error) ?? undefined,
+    });
+  }, [grantPermit.error, toast]);
+
+  useEffect(() => {
+    if (!balanceError) return;
+    toast.error({
+      title: "Wallet balance decrypt failed",
+      description: firstMessage(balanceError) ?? undefined,
+    });
+  }, [balanceError, toast]);
+
+  const errorMessage = firstMessage(permitError);
 
   const showCleartext = revealed && cusdtBalance !== undefined;
   const label = permitLoading

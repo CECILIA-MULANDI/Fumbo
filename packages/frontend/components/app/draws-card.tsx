@@ -8,6 +8,7 @@ import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import { drawRegistry, fumboPool } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -46,6 +47,7 @@ function DrawRow({
   claimTimeout: number | undefined;
 }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: raw } = useReadContract({
     ...drawRegistry,
@@ -98,10 +100,22 @@ function DrawRow({
 
   useEffect(() => {
     if (!expireSuccess) return;
+    toast.success({
+      title: `Draw #${drawId} rolled over`,
+      description: "The unclaimed prize was returned to the next draw's reserve.",
+    });
     queryClient.invalidateQueries();
     const t = setTimeout(() => resetExpire(), 5000);
     return () => clearTimeout(t);
-  }, [expireSuccess, queryClient, resetExpire]);
+  }, [expireSuccess, queryClient, resetExpire, toast, drawId]);
+
+  useEffect(() => {
+    if (!expireError) return;
+    toast.error({
+      title: `Rollover failed for Draw #${drawId}`,
+      description: firstMessage(expireError) ?? undefined,
+    });
+  }, [expireError, toast, drawId]);
 
   async function handleExpire() {
     await expireAsync({
@@ -132,27 +146,25 @@ function DrawRow({
     statusClass = "text-foreground";
   }
 
-  const expireErrorMessage = firstMessage(expireError);
-
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-sm font-medium text-foreground">Draw #{drawId}</span>
+          <span className="font-mono text-base font-medium text-foreground">Draw #{drawId}</span>
           <span className="text-xs text-muted-foreground">
             {timestamp !== undefined ? formatRelative(timestamp, now) : "loading…"}
           </span>
         </div>
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-end gap-0.5">
-            <span className="font-mono text-sm tabular-nums text-foreground">
+            <span className="font-mono text-lg tabular-nums text-foreground">
               {cleartext !== undefined
                 ? `${formatUnits(cleartext, CUSDT_DECIMALS)} cUSDT`
                 : decrypt.isPending
                 ? "decrypting…"
-                : "—"}
+                : "..."}
             </span>
-            <span className="text-xs text-muted-foreground">prize</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">prize</span>
           </div>
           <div className="flex flex-col items-end gap-1">
             <span className={`font-mono text-xs uppercase tracking-wider ${statusClass}`}>
@@ -201,17 +213,13 @@ function DrawRow({
           </div>
         </div>
       </div>
-      {expireErrorMessage && (
-        <p role="alert" className="text-xs text-destructive">
-          {expireErrorMessage}
-        </p>
-      )}
     </div>
   );
 }
 
 export function DrawsCard() {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: drawCount } = useReadContract({
     ...drawRegistry,
@@ -268,10 +276,22 @@ export function DrawsCard() {
 
   useEffect(() => {
     if (!triggerSuccess) return;
+    toast.success({
+      title: "Draw complete",
+      description: "A winner was selected over encrypted balances. Only they will learn they won.",
+    });
     queryClient.invalidateQueries();
     const t = setTimeout(() => resetTrigger(), 5000);
     return () => clearTimeout(t);
-  }, [triggerSuccess, queryClient, resetTrigger]);
+  }, [triggerSuccess, queryClient, resetTrigger, toast]);
+
+  useEffect(() => {
+    if (!triggerError) return;
+    toast.error({
+      title: "Draw trigger failed",
+      description: firstMessage(triggerError) ?? undefined,
+    });
+  }, [triggerError, toast]);
 
   async function handleTrigger() {
     await writeContractAsync({
@@ -298,8 +318,6 @@ export function DrawsCard() {
     triggerLabel = "Trigger draw";
   }
 
-  const errorMessage = firstMessage(triggerError);
-
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
@@ -312,9 +330,14 @@ export function DrawsCard() {
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border border-border/60 bg-muted/30 p-4">
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-              Next draw
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                Next draw
+              </span>
+              <span className="rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">
+                Permissionless
+              </span>
+            </div>
             <span className="font-mono text-2xl tabular-nums text-foreground">
               {secondsUntilNext === undefined
                 ? "Loading…"
@@ -351,29 +374,6 @@ export function DrawsCard() {
               />
             ))}
           </div>
-        )}
-
-        {triggerSuccess && (
-          <div role="status" className="rounded-lg border border-accent/40 bg-accent/10 p-4">
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
-                aria-hidden="true"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Draw triggered</p>
-                <p className="text-sm leading-[1.6] text-muted-foreground">
-                  A winner has been selected on encrypted balances. Check below to see if you won.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {errorMessage && (
-          <p role="alert" className="text-sm text-destructive">
-            {errorMessage}
-          </p>
         )}
       </CardContent>
     </Card>

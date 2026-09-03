@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import { fumboPool } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -18,6 +19,7 @@ const CUSDT_DECIMALS = 6;
 export function WithdrawCard() {
   const { address } = useAccount();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [amount, setAmount] = useState("");
 
   const parsed = Number(amount);
@@ -56,12 +58,32 @@ export function WithdrawCard() {
 
   useEffect(() => {
     if (!withdrawSuccess) return;
+    toast.success({
+      title: "Withdrawal confirmed",
+      description: "Your encrypted balances are updating. Reveal them above to see the new amounts.",
+    });
     queryClient.invalidateQueries();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot on tx confirm
     setAmount("");
     const t = setTimeout(() => resetWithdraw(), 5000);
     return () => clearTimeout(t);
-  }, [withdrawSuccess, queryClient, resetWithdraw]);
+  }, [withdrawSuccess, queryClient, resetWithdraw, toast]);
+
+  useEffect(() => {
+    if (!encrypt.error) return;
+    toast.error({
+      title: "Encryption failed",
+      description: firstMessage(encrypt.error) ?? undefined,
+    });
+  }, [encrypt.error, toast]);
+
+  useEffect(() => {
+    if (!withdrawError) return;
+    toast.error({
+      title: "Withdrawal failed",
+      description: firstMessage(withdrawError) ?? undefined,
+    });
+  }, [withdrawError, toast]);
 
   async function handleWithdraw() {
     if (!address || amountRaw === undefined) return;
@@ -76,8 +98,6 @@ export function WithdrawCard() {
       args: [encrypted.encryptedValues[0], encrypted.inputProof],
     });
   }
-
-  const errorMessage = firstMessage(encrypt.error, withdrawError);
 
   const busy = encrypt.isPending || withdrawPending || withdrawConfirming;
   const notDepositor = isDepositor === false;
@@ -120,7 +140,7 @@ export function WithdrawCard() {
               aria-invalid={invalid || undefined}
               className="h-14 rounded-lg pr-20 font-mono text-2xl tabular-nums"
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm font-medium tracking-wider text-muted-foreground">
               cUSDT
             </span>
           </div>
@@ -141,30 +161,6 @@ export function WithdrawCard() {
         >
           {primaryLabel}
         </Button>
-
-        {withdrawSuccess && (
-          <div role="status" className="rounded-lg border border-accent/40 bg-accent/10 p-4">
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
-                aria-hidden="true"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Withdrawal confirmed</p>
-                <p className="text-sm leading-[1.6] text-muted-foreground">
-                  Your encrypted balances are updating. Reveal your pool balance and wallet balance
-                  above to see the new amounts.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {errorMessage && (
-          <p role="alert" className="text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
       </CardContent>
     </Card>
   );

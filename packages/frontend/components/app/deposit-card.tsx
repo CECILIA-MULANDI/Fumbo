@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import { cUSDT, fumboPool } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -26,6 +27,7 @@ const OPERATOR_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 export function DepositCard() {
   const { address } = useAccount();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [amount, setAmount] = useState("");
 
   const parsed = Number(amount);
@@ -73,20 +75,52 @@ export function DepositCard() {
 
   useEffect(() => {
     if (!depositSuccess) return;
+    toast.success({
+      title: "Deposit confirmed",
+      description: "Your encrypted principal is updating. Reveal it from the pool balance card.",
+    });
     queryClient.invalidateQueries();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot on tx confirm
     setAmount("");
     const t = setTimeout(() => resetDeposit(), 5000);
     return () => clearTimeout(t);
-  }, [depositSuccess, queryClient, resetDeposit]);
+  }, [depositSuccess, queryClient, resetDeposit, toast]);
 
   const operatorSuccess = setOperator.isSuccess;
   const resetOperator = setOperator.reset;
   useEffect(() => {
     if (!operatorSuccess) return;
+    toast.success({
+      title: "Pool approved",
+      description: "You can deposit any amount for the next 30 days without re-approving.",
+    });
     const t = setTimeout(() => resetOperator(), 5000);
     return () => clearTimeout(t);
-  }, [operatorSuccess, resetOperator]);
+  }, [operatorSuccess, resetOperator, toast]);
+
+  useEffect(() => {
+    if (!setOperator.error) return;
+    toast.error({
+      title: "Approval failed",
+      description: firstMessage(setOperator.error) ?? undefined,
+    });
+  }, [setOperator.error, toast]);
+
+  useEffect(() => {
+    if (!encrypt.error) return;
+    toast.error({
+      title: "Encryption failed",
+      description: firstMessage(encrypt.error) ?? undefined,
+    });
+  }, [encrypt.error, toast]);
+
+  useEffect(() => {
+    if (!depositError) return;
+    toast.error({
+      title: "Deposit failed",
+      description: firstMessage(depositError) ?? undefined,
+    });
+  }, [depositError, toast]);
 
   async function handleApprove() {
     if (!address) return;
@@ -110,8 +144,6 @@ export function DepositCard() {
       args: [encrypted.encryptedValues[0], encrypted.inputProof],
     });
   }
-
-  const errorMessage = firstMessage(setOperator.error, encrypt.error, depositError);
 
   const busy =
     setOperator.isPending ||
@@ -162,7 +194,7 @@ export function DepositCard() {
               aria-invalid={invalid || insufficient || undefined}
               className="h-14 rounded-lg pr-20 font-mono text-2xl tabular-nums"
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm font-medium tracking-wider text-muted-foreground">
               cUSDT
             </span>
           </div>
@@ -199,53 +231,6 @@ export function DepositCard() {
         >
           {primaryLabel}
         </Button>
-
-        {setOperator.isSuccess && (
-          <div
-            role="status"
-            className="rounded-lg border border-accent/40 bg-accent/10 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
-                aria-hidden="true"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Pool approved</p>
-                <p className="text-sm leading-[1.6] text-muted-foreground">
-                  You can deposit any amount for the next 30 days without re-approving.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {depositSuccess && (
-          <div
-            role="status"
-            className="rounded-lg border border-accent/40 bg-accent/10 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]"
-                aria-hidden="true"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Deposit confirmed</p>
-                <p className="text-sm leading-[1.6] text-muted-foreground">
-                  Your encrypted principal is updating. Reveal it from the pool balance card
-                  above.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {errorMessage && (
-          <p role="alert" className="text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
 
         <FaucetButton />
       </CardContent>

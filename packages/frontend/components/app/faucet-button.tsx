@@ -1,8 +1,11 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { cUSDT } from "@/lib/contracts";
 import { firstMessage } from "@/lib/errors";
 
@@ -11,11 +14,30 @@ const FAUCET_LABEL_AMOUNT = "1,000";
 
 export function FaucetButton() {
   const { address } = useAccount();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const { data: hash, writeContract, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
     query: { enabled: !!hash },
   });
+
+  useEffect(() => {
+    if (!isSuccess) return;
+    toast.success({
+      title: `Received ${FAUCET_LABEL_AMOUNT} cUSDT`,
+      description: "Test tokens are in your wallet. Deposit any amount to join the pool.",
+    });
+    queryClient.invalidateQueries();
+  }, [isSuccess, toast, queryClient]);
+
+  useEffect(() => {
+    if (!error) return;
+    toast.error({
+      title: "Faucet mint failed",
+      description: firstMessage(error) ?? undefined,
+    });
+  }, [error, toast]);
 
   function handleMint() {
     if (!address) return;
@@ -27,29 +49,21 @@ export function FaucetButton() {
   }
 
   const busy = isPending || isConfirming;
-  const errorMessage = firstMessage(error);
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button
-        variant="outline"
-        onClick={handleMint}
-        disabled={!address || busy}
-        className="h-12 w-full rounded-md text-base font-medium"
-      >
-        {isPending
-          ? "Confirm in wallet…"
-          : isConfirming
-          ? "Minting…"
-          : isSuccess
-          ? `Minted ${FAUCET_LABEL_AMOUNT} cUSDT ✓`
-          : `Get ${FAUCET_LABEL_AMOUNT} test cUSDT`}
-      </Button>
-      {errorMessage && (
-        <p role="alert" className="text-sm text-destructive">
-          {errorMessage}
-        </p>
-      )}
-    </div>
+    <Button
+      variant="outline"
+      onClick={handleMint}
+      disabled={!address || busy}
+      className="h-12 w-full rounded-md text-base font-medium"
+    >
+      {isPending
+        ? "Confirm in wallet…"
+        : isConfirming
+        ? "Minting…"
+        : isSuccess
+        ? `Minted ${FAUCET_LABEL_AMOUNT} cUSDT ✓`
+        : `Get ${FAUCET_LABEL_AMOUNT} test cUSDT`}
+    </Button>
   );
 }
