@@ -122,11 +122,14 @@ function EligibleCard({ drawId, timestamp }: EligibleDraw) {
     reset: resetCheck,
   } = useWriteContract();
 
-  const { isLoading: checkConfirming, isSuccess: checkConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: checkHash,
-      query: { enabled: !!checkHash },
-    });
+  const {
+    isLoading: checkConfirming,
+    isSuccess: checkConfirmed,
+    error: checkReceiptError,
+  } = useWaitForTransactionReceipt({
+    hash: checkHash,
+    query: { enabled: !!checkHash },
+  });
 
   const { data: storedHandle } = useReadContract({
     ...drawRegistry,
@@ -177,12 +180,26 @@ function EligibleCard({ drawId, timestamp }: EligibleDraw) {
   }, [checkError, toast, drawId]);
 
   useEffect(() => {
+    if (!checkReceiptError) return;
+    toast.error({
+      title: `Reveal reverted on chain for Draw #${drawId}`,
+      description: firstMessage(checkReceiptError) ?? undefined,
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- unstick user after receipt error
+    setState("idle");
+    resetCheck();
+  }, [checkReceiptError, toast, drawId, resetCheck]);
+
+  useEffect(() => {
     if (!decryptError) return;
     toast.error({
       title: `Decrypt failed for Draw #${drawId}`,
       description: firstMessage(decryptError) ?? undefined,
     });
-  }, [decryptError, toast, drawId]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- unstick user for retry on transient decrypt failure
+    setState("idle");
+    resetCheck();
+  }, [decryptError, toast, drawId, resetCheck]);
 
   const relative = useRelativeTime(timestamp);
 

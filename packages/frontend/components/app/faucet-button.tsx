@@ -16,7 +16,7 @@ export function FaucetButton() {
   const { address } = useAccount();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { data: hash, writeContract, isPending, error } = useWriteContract();
+  const { data: hash, writeContract, isPending, error, reset } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
     query: { enabled: !!hash },
@@ -29,7 +29,9 @@ export function FaucetButton() {
       description: "Test tokens are in your wallet. Deposit any amount to join the pool.",
     });
     queryClient.invalidateQueries();
-  }, [isSuccess, toast, queryClient]);
+    const t = setTimeout(() => reset(), 5000);
+    return () => clearTimeout(t);
+  }, [isSuccess, toast, queryClient, reset]);
 
   useEffect(() => {
     if (!error) return;
