@@ -1,6 +1,7 @@
-# Keep working docs local. Only README.md ships in the repo.
+# Keep working docs local. Only README.md and shipped content ship in the repo.
 *.md
 !README.md
+!packages/frontend/content/*.md
 
 # Secrets. Never commit.
 .env

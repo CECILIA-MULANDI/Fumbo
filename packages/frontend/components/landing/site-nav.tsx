@@ -20,6 +20,9 @@ export function SiteNav() {
           <a href="#faq" className="text-base text-muted-foreground transition-colors hover:text-foreground">
             FAQ
           </a>
+          <Link href="/blog" className="text-base text-muted-foreground transition-colors hover:text-foreground">
+            Blog
+          </Link>
         </div>
         <WalletConnectButton className="h-11 rounded-md px-5 text-base font-medium" />
       </div>
