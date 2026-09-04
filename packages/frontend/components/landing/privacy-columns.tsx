@@ -1,9 +1,9 @@
 const privateItems = [
   "Your deposit amount",
   "Your running balance",
-  "Your withdrawal history",
+  "How much you withdrew, each time",
   "The winner's address, each draw",
-  "The prize amount you receive",
+  "Whether you received the prize",
 ];
 
 const publicItems = [
