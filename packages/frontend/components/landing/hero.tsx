@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WalletConnectButton } from "@/components/wallet/connect-button";
 
@@ -56,6 +57,16 @@ export function Hero() {
 
 function BalanceCardPreview() {
   const reduce = useReducedMotion();
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (reduce) {
+      setRevealed(true);
+      return;
+    }
+    const t = setTimeout(() => setRevealed(true), 1300);
+    return () => clearTimeout(t);
+  }, [reduce]);
 
   return (
     <div className="relative w-full">
@@ -65,7 +76,7 @@ function BalanceCardPreview() {
             Your balance
           </p>
           <span className="rounded-full border border-border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            encrypted
+            {revealed ? "decrypted • your view" : "encrypted"}
           </span>
         </div>
 
