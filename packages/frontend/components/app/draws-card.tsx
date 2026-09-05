@@ -241,6 +241,12 @@ export function DrawsCard() {
     ...fumboPool,
     functionName: "depositorCount",
   });
+  const { refetch: refetchEncTotal } = useReadContract({
+    ...fumboPool,
+    functionName: "encTotalDeposits",
+    query: { enabled: false },
+  });
+  const decryptTotal = useDecryptPublicValues();
 
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
@@ -281,8 +287,7 @@ export function DrawsCard() {
       description: "A winner was selected over encrypted balances. Only they will learn they won.",
     });
     queryClient.invalidateQueries();
-    const t = setTimeout(() => resetTrigger(), 5000);
-    return () => clearTimeout(t);
+    resetTrigger();
   }, [triggerSuccess, queryClient, resetTrigger, toast]);
 
   useEffect(() => {
@@ -294,17 +299,32 @@ export function DrawsCard() {
   }, [triggerError, toast]);
 
   async function handleTrigger() {
+    const totalRead = await refetchEncTotal();
+    const totalHandle = totalRead.data as `0x${string}` | undefined;
+    if (!totalHandle) {
+      toast.error({ title: "Draw trigger failed", description: "Pool total handle unavailable." });
+      return;
+    }
+    const publicDecrypted = await decryptTotal.mutateAsync([totalHandle]);
+    const plaintextTotal = publicDecrypted.clearValues[totalHandle] as bigint | undefined;
+    if (plaintextTotal === undefined) {
+      toast.error({ title: "Draw trigger failed", description: "Could not decrypt pool total." });
+      return;
+    }
     await writeContractAsync({
       ...drawRegistry,
       functionName: "triggerDraw",
+      args: [plaintextTotal, publicDecrypted.decryptionProof],
     });
   }
 
-  const busy = triggerPending || triggerConfirming;
+  const busy = triggerPending || triggerConfirming || decryptTotal.isPending;
   const triggerDisabled = !ready || noDepositors || busy;
 
   let triggerLabel: string;
-  if (triggerPending) {
+  if (decryptTotal.isPending) {
+    triggerLabel = "Preparing draw…";
+  } else if (triggerPending) {
     triggerLabel = "Confirm in wallet…";
   } else if (triggerConfirming) {
     triggerLabel = "Running draw…";
