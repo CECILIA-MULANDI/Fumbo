@@ -20,21 +20,23 @@ That part is standard prize-linked savings! Well, I think what actually matters 
 
 ## What stays encrypted, what leaks
 
-**Encrypted onchain (only the owner or the DrawRegistry contract can decrypt):**
+**Encrypted onchain (only the owner can decrypt via EIP-712):**
 
 - Your deposit amount and running pool balance
-- The pool's total deposits (only the DrawRegistry has decrypt permission, used internally for draw math)
+- Each withdrawal amount
 - The winner index for every draw
 - Whether you personally won any given draw
-- The winner's prize routing (via `FHE.select` on ciphertext)
+- The pool's reserve, pot, and cumulative accrued yield
+- Prize routing to non-winners (via `FHE.select` on ciphertext, so their zero payouts look identical to the real one)
 
-**Public by design:**
+**Public by design (readable or KMS-decryptable onchain):**
 
-- Each draw's prize amount, made publicly decryptable so the pot size is visible
-- Whether an address is a depositor (a boolean flag, not the amount)
-- Draw cadence, state, and timing
+- The pool's total deposits, KMS-decryptable so the draw contract can bound the RNG to a valid range and anyone can audit pool TVL
+- Each draw's prize amount, KMS-decryptable so the pot size is visible before you decide whether to participate
+- The set of registered depositor addresses (a boolean membership flag, never the amounts)
+- Draw cadence, state, timing, and every contract call
 
-The per-draw prize is public because a prize-savings protocol needs a visible pot for anyone to trust the mechanic. The depositor list is public because winner selection has to walk over it on ciphertext. But neither of those tells you how much any specific person has saved, and the winner itself stays encrypted through the entire flow.
+The pool's total and each draw's prize are public because a prize-savings protocol needs a visible pot and provably-fair math for anyone to trust the mechanic. The depositor address list is public because winner selection has to walk over it on ciphertext. But none of that tells you how much any specific person has saved, and the winner itself stays encrypted through the entire flow.
 
 ## Three FHE primitives that make the whole protocol work
 
@@ -57,9 +59,13 @@ On the Fumbo UI we actually catch this at the frontend as soon as you've decrypt
 
 ### 2. Weighted selection on ciphertext with `FHE.randEuint64`
 
-This is where I think the whole protocol pivots. `FHE.randEuint64` gives us an encrypted uniform random value drawn onchain, and we take that modulo `totalDeposits` to get an encrypted offset into the pool. From there we walk the depositor list on ciphertext, accumulating each depositor's encrypted balance as we go, and whoever's cumulative range happens to contain that offset ends up being the winner.
+This is where I think the whole protocol pivots. `FHE.randEuint64` gives us an encrypted uniform random value drawn onchain, we XOR it with `block.prevrandao` (so a single malicious actor with control of either the KMS network or the block proposer isn't enough), and then take that modulo `totalDeposits` to get an encrypted offset into the pool. From there we walk the depositor list on ciphertext, accumulating each depositor's encrypted balance as we go, and whoever's cumulative range happens to contain that offset ends up being the winner.
 
-The whole computation stays in ciphertext from start to finish, and the resulting winner index is stored as an encrypted `euint32` that nothing outside the contract can decrypt directly. What individual depositors get is a handle they can query through `didIWin` to learn whether they specifically won, without any information leaking about who else did or didn't win.
+There's a subtle constraint hiding in that description that took me a while to work through. `FHE.rem` on FHEVM needs a plaintext divisor, but `totalDeposits` is stored encrypted. If we skipped the mod and let the RNG range span the full pool cap instead, we'd have a nasty statistical bug where the RNG almost never lands inside the actual cumulative range (the cap is sized for the theoretical maximum pool, and any real pool is a small fraction of that), so most draws would produce no winner at all.
+
+The fix is to make `totalDeposits` publicly decryptable, hand the ciphertext to the KMS network to decrypt off-chain, and have `triggerDraw` accept the plaintext plus the KMS signatures as arguments. `FHE.checkSignatures` verifies the plaintext really came from the KMS decryption of the on-chain handle, and then `FHE.rem(rMixed, plaintextTotal)` is safe. This costs one KMS round trip per draw, but keeps the fairness guarantee end to end. Individual balances never enter the KMS decryption path.
+
+The rest of the computation stays in ciphertext from start to finish, and the resulting winner index is stored as an encrypted `euint32` that nothing outside the contract can decrypt directly. What individual depositors get is a handle they can query through `didIWin` to learn whether they specifically won, without any information leaking about who else did or didn't win.
 
 There are two tradeoffs I think are worth me mentioning:
 

@@ -18,7 +18,7 @@ export function Hero() {
               A no-loss prize pool where only the winner knows they won.
             </h1>
             <p className="max-w-[52ch] text-lg leading-[1.65] text-muted-foreground md:text-xl">
-              Deposit cUSDT, keep your principal. Yield funds a weekly draw. Balances and winners stay encrypted. On Ethereum, via FHEVM.
+              Deposit cUSDT, keep your principal. Yield funds a regular draw. Balances and winners stay encrypted. On Ethereum, via FHEVM.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <WalletConnectButton

@@ -45,16 +45,20 @@ Under [packages/contracts/contracts/](packages/contracts/contracts/):
 
 ## Draw mechanic
 
-Permissionless. [`DrawRegistry.triggerDraw()`](packages/contracts/contracts/DrawRegistry.sol#L83):
+Permissionless. [`DrawRegistry.triggerDraw(plaintextTotal, decryptionProof)`](packages/contracts/contracts/DrawRegistry.sol#L86):
 
 ```
+// caller passes KMS-decrypted totalDeposits + KMS signature proof
+FHE.checkSignatures([handle(encTotalDeposits)], plaintextTotal, decryptionProof)
+
 encYield = encTotalDeposits * aprBps * elapsed / (BPS * SECONDS_PER_YEAR)
 prizePot.accrue(encYield)                      // reserve -> pot
 encPrize = prizePot.snapshot()                 // drains pot
 FHE.makePubliclyDecryptable(encPrize)          // pot size is public; winner is not
 
-r = FHE.xor(FHE.randEuint64(poolCapPow2),
-            block.prevrandao & (poolCapPow2 - 1))
+rMixed = FHE.xor(FHE.randEuint64(poolCapPow2),
+                 block.prevrandao & (poolCapPow2 - 1))
+r      = FHE.rem(rMixed, plaintextTotal)       // bound to actual deposit range
 
 for i in depositors:
     cumsum += encBalance[i]
@@ -62,28 +66,34 @@ for i in depositors:
     foundYet |= FHE.lt(r, cumsum)
 ```
 
+`FHE.rem` requires a plaintext divisor, so `encTotalDeposits` is marked publicly decryptable and every caller retrieves the KMS-signed plaintext via the relayer before triggering. `FHE.checkSignatures` proves on-chain that `plaintextTotal` is the KMS-network's decryption of the current handle, so no griefer can pass a wrong total to skew selection. Individual balances stay encrypted through this whole flow, only the aggregate is decrypted.
+
 Winner index and prize sit encrypted per draw. `didIWin(drawId, addr)` grants ACL of an `ebool` to the caller and persists the handle in `revealedIsWinner[drawId][user]` so the frontend reads back the exact handle the tx granted ACL for. Handles are then locally decrypted via user permit. `claim` calls `PrizePot.release`, which gates the payout with `FHE.select(isWinner, encPrize, 0)`. Non-winners silently receive zero.
 
-If no depositor covers `r` (pool underfull), the sweep finishes with no winner. The prize sits until `CLAIM_TIMEOUT_SECS = 86400`, then anyone calls `expireDraw` and `rollover` returns the prize to `_encPot` for the next draw.
+The prize sits until `CLAIM_TIMEOUT_SECS = 86400`, then anyone calls `expireDraw` and `rollover` returns the prize to `_encPot` for the next draw.
 
 ## What's encrypted
 
-`euint64` unless noted. Never leaves ciphertext except via user EIP-712 decrypt.
+`euint64` unless noted. Never leaves ciphertext except via user EIP-712 decrypt (individual state) or KMS public decryption (aggregate state, explicitly marked below).
 
-- Per-user balances and total deposits (`FumboPool`)
-- Reserve, pot, total yield accrued (`PrizePot`)
-- Per-draw prize amount (`euint64`, made publicly decryptable so pot size is visible; winner is not)
+- Per-user balances (`FumboPool`, `euint64`, user-decryptable only)
+- Reserve, pot, cumulative yield accrued (`PrizePot`, `euint64`)
 - Per-draw winner index (`euint32`, ACL restricted)
 - Winner identity (only the winner's `didIWin` returns true after they decrypt)
+- Prize routing to non-winners (`FHE.select` on ciphertext, so a non-winner's zero payout is indistinguishable from the real one)
 
-## What leaks
+## What's public by design
+
+1. **Pool's total deposits** (`_encTotalDeposits`, KMS-decryptable). Needed so `triggerDraw` can pass a KMS-verified plaintext divisor to `FHE.rem` and bound the RNG to the actual deposit range. Also lets anyone audit pool TVL. Individual balances are never in this decryption path.
+2. **Per-draw prize amount** (`_encPrizeAmount[drawId]`, KMS-decryptable). Pot size has to be visible for the mechanic to be trusted.
+3. **Depositor address set** (`depositors[]` array, plaintext). Being a depositor is public because the sweep has to walk over it on ciphertext. Deposit size stays encrypted.
+
+## What else leaks
 
 1. Admin's one-time reserve funding amount, broadcast in plaintext at deploy ([`fundReserve.ts`](packages/contracts/scripts/fundReserve.ts)).
 2. Protocol parameters: `APR_BPS=500`, `DRAW_INTERVAL_SECS=900`, `CLAIM_TIMEOUT_SECS=86400`, `POOL_CAP_POW2=2^40`, `MAX_DEPOSITORS=100`.
-3. Per-draw prize amount is public.
-4. Tx metadata (`msg.sender`, `block.timestamp`) for deposit / withdraw / trigger / claim. Amounts stay hidden.
-5. The `depositors[]` array is plaintext so the sweep can iterate. Being a depositor is public; deposit size is not.
-6. If total deposits exceed `POOL_CAP_POW2` (~1.1M cUSDT at 2^40), the RNG range no longer covers the full cumulative sum and selection biases against latecomers. Not enforced on chain because comparing to encrypted `_encTotalDeposits` would require decryption. Sized well above demo scale; a production deploy would size it to a realistic pool ceiling.
+3. Tx metadata (`msg.sender`, `block.timestamp`) for deposit / withdraw / trigger / claim. Amounts stay hidden.
+4. Modular bias in RNG. `r = rMixed mod plaintextTotal` where `rMixed` spans `[0, POOL_CAP_POW2)`. Bias is negligible as long as `POOL_CAP_POW2 >> plaintextTotal` (~2^40 vs a demo-scale pool). A production deploy sizes `POOL_CAP_POW2` above the expected pool ceiling to keep bias in the noise.
 
 ## Trust model
 
@@ -151,9 +161,9 @@ All four contracts are source-verified on Sepolia Etherscan. Click any address t
 | Contract | Address |
 | --- | --- |
 | MockConfidentialUSDT | [`0x3298c2f69958170343641304aAe2Da4aa259F1cA`](https://sepolia.etherscan.io/address/0x3298c2f69958170343641304aAe2Da4aa259F1cA#code) |
-| PrizePot | [`0xa134A031655206FE124762Cc5842a986f301bc5c`](https://sepolia.etherscan.io/address/0xa134A031655206FE124762Cc5842a986f301bc5c#code) |
-| FumboPool | [`0xc8201246d27bF6647d02B621194F7F915347882C`](https://sepolia.etherscan.io/address/0xc8201246d27bF6647d02B621194F7F915347882C#code) |
-| DrawRegistry | [`0x427fB2C8ADe513e7bf0A0d5F005746E957236C97`](https://sepolia.etherscan.io/address/0x427fB2C8ADe513e7bf0A0d5F005746E957236C97#code) |
+| PrizePot | [`0x3fa5BacD200C4CF5A59Afb76EC2Be86BC6a81b8D`](https://sepolia.etherscan.io/address/0x3fa5BacD200C4CF5A59Afb76EC2Be86BC6a81b8D#code) |
+| FumboPool | [`0xF3c5699e449086CaaC4A3751dE9fAc4839ee540b`](https://sepolia.etherscan.io/address/0xF3c5699e449086CaaC4A3751dE9fAc4839ee540b#code) |
+| DrawRegistry | [`0x04E1a7A571239492493817F7d995920c6a3f62Fe`](https://sepolia.etherscan.io/address/0x04E1a7A571239492493817F7d995920c6a3f62Fe#code) |
 
 Also written to [`addresses/sepolia.json`](packages/contracts/addresses/sepolia.json) on every deploy.
 

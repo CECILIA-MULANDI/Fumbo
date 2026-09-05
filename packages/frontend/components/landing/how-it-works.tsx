@@ -1,7 +1,7 @@
 const steps = [
   {
     title: "Deposit cUSDT",
-    body: "Your deposit is transferred as an encrypted amount. The pool never learns your individual balance, only the encrypted total.",
+    body: "Your deposit is transferred as an encrypted amount. Your individual balance stays encrypted per user. Only the aggregate pool total is KMS-decryptable, so draws can be provably fair.",
   },
   {
     title: "Yield accrues",

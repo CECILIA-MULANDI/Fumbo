@@ -9,7 +9,8 @@ const privateItems = [
 const publicItems = [
   "The pool contract code",
   "Draw schedule and cadence",
-  "Total prize accrued each draw",
+  "The pool's total deposits (KMS-verified for provably-fair draws)",
+  "Each draw's prize amount",
   "Contract calls and gas usage",
   "The set of registered depositors",
 ];
