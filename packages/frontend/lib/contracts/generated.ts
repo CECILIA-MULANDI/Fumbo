@@ -426,7 +426,7 @@ export const fumboPoolAbi = [
 ] as const;
 
 export const fumboPoolAddress: Record<number, `0x${string}`> = {
-  "11155111": "0xc8201246d27bF6647d02B621194F7F915347882C"
+  "11155111": "0xF3c5699e449086CaaC4A3751dE9fAc4839ee540b"
 } as const;
 
 export const mockConfidentialUSDTAbi = [
@@ -1173,6 +1173,11 @@ export const drawRegistryAbi = [
   },
   {
     "inputs": [],
+    "name": "InvalidKMSSignatures",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "NoDepositors",
     "type": "error"
   },
@@ -1253,6 +1258,25 @@ export const drawRegistryAbi = [
       }
     ],
     "name": "DrawTriggered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes32[]",
+        "name": "handlesList",
+        "type": "bytes32[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "abiEncodedCleartexts",
+        "type": "bytes"
+      }
+    ],
+    "name": "PublicDecryptionVerified",
     "type": "event"
   },
   {
@@ -1541,7 +1565,18 @@ export const drawRegistryAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "plaintextTotal",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "decryptionProof",
+        "type": "bytes"
+      }
+    ],
     "name": "triggerDraw",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -1550,7 +1585,7 @@ export const drawRegistryAbi = [
 ] as const;
 
 export const drawRegistryAddress: Record<number, `0x${string}`> = {
-  "11155111": "0x427fB2C8ADe513e7bf0A0d5F005746E957236C97"
+  "11155111": "0x04E1a7A571239492493817F7d995920c6a3f62Fe"
 } as const;
 
 export const prizePotAbi = [
@@ -1869,6 +1904,6 @@ export const prizePotAbi = [
 ] as const;
 
 export const prizePotAddress: Record<number, `0x${string}`> = {
-  "11155111": "0xa134A031655206FE124762Cc5842a986f301bc5c"
+  "11155111": "0x3fa5BacD200C4CF5A59Afb76EC2Be86BC6a81b8D"
 } as const;
 
