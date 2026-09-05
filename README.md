@@ -10,6 +10,8 @@
   <a href="https://fumbo-nu.vercel.app/">Live app</a>
   ·
   <a href="https://www.loom.com/share/fa8a9a34e3bc4afebcf76912e2c1628c">Demo video</a>
+  ·
+  <a href="https://x.com/kashortgirl/status/2096256466843816147">Article</a>
 </p>
 
 ## What is Fumbo
