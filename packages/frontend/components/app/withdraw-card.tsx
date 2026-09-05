@@ -143,7 +143,7 @@ export function WithdrawCard() {
   }
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card data-tour="withdraw" className="[--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-2xl">Take your principal back</CardTitle>
       </CardHeader>

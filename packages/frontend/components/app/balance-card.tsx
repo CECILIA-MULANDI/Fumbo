@@ -103,7 +103,7 @@ export function BalanceCard() {
     : "Reveal (sign once)";
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card data-tour="balance" className="[--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-2xl">Encrypted principal</CardTitle>
       </CardHeader>

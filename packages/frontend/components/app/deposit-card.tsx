@@ -169,7 +169,7 @@ export function DepositCard() {
   }
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card data-tour="deposit" className="[--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-2xl">Add to the pool</CardTitle>
       </CardHeader>

@@ -339,7 +339,7 @@ export function DrawsCard() {
   }
 
   return (
-    <Card className="[--card-spacing:--spacing(6)]">
+    <Card data-tour="draws" className="[--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-2xl">Recent draws & prizes</CardTitle>
         <CardDescription>
@@ -350,13 +350,23 @@ export function DrawsCard() {
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border border-border/60 bg-muted/30 p-4">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 Next draw
               </span>
               <span className="rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">
                 Permissionless
               </span>
+              {depositorCount !== undefined && (
+                <span
+                  title="Addresses in the pool. Individual balances stay encrypted."
+                  className="rounded-full border border-border bg-card px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                >
+                  {Number(depositorCount) === 1
+                    ? "1 depositor"
+                    : `${Number(depositorCount)} depositors`}
+                </span>
+              )}
             </div>
             <span className="font-mono text-2xl tabular-nums text-foreground">
               {secondsUntilNext === undefined
