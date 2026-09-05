@@ -83,13 +83,21 @@ contract DrawRegistry is ZamaEthereumConfig {
     }
 
     /// @notice Permissionless. Accrues yield, snapshots prize, samples encrypted RNG, runs weighted sweep, stores winner.
-    function triggerDraw() external {
+    function triggerDraw(uint64 plaintextTotal, bytes calldata decryptionProof) external {
         if (block.timestamp < lastDrawTime + drawInterval) revert DrawNotReady();
         uint32 n = pool.depositorCount();
         if (n == 0) revert NoDepositors();
+        if (plaintextTotal == 0) revert NoDepositors();
 
         uint64 elapsed = uint64(block.timestamp) - lastDrawTime;
         euint64 encTotal = pool.encTotalDeposits();
+
+        // Verify caller-supplied plaintextTotal against KMS signatures over encTotal.
+        // Prevents a griefer from passing a wrong total that would land r outside the deposit range.
+        bytes32[] memory handles = new bytes32[](1);
+        handles[0] = euint64.unwrap(encTotal);
+        FHE.checkSignatures(handles, abi.encode(plaintextTotal), decryptionProof);
+
         euint64 encYield = FHE.div(FHE.mul(encTotal, uint64(aprBps) * elapsed), BPS * SECONDS_PER_YEAR);
         FHE.allowTransient(encYield, address(prizePot));
         prizePot.accrue(encYield);
@@ -102,7 +110,10 @@ contract DrawRegistry is ZamaEthereumConfig {
         uint64 cap = pool.poolCapPow2();
         euint64 encR = FHE.randEuint64(cap);
         uint64 pubR = uint64(uint256(block.prevrandao)) & (cap - 1);
-        euint64 r = FHE.xor(encR, FHE.asEuint64(pubR));
+        euint64 rMixed = FHE.xor(encR, FHE.asEuint64(pubR));
+        // Bound r to [0, plaintextTotal) so the cumsum walk always finds a winner.
+        // plaintextTotal is KMS-verified above, so this mod is trustworthy.
+        euint64 r = FHE.rem(rMixed, plaintextTotal);
 
         euint64 cumsum = FHE.asEuint64(uint64(0));
         euint32 winnerIdx = FHE.asEuint32(NO_WINNER);

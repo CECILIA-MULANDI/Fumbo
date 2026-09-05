@@ -23,6 +23,13 @@ describe("Fumbo end-to-end", () => {
   let pool: FumboPool;
   let drawRegistry: DrawRegistry;
 
+  async function triggerDrawFor(caller: HardhatEthersSigner) {
+    const totalHandle = await pool.encTotalDeposits();
+    const { decryptionProof, clearValues } = await fhevm.publicDecrypt([totalHandle]);
+    const plaintextTotal = clearValues[totalHandle as `0x${string}`] as bigint;
+    return drawRegistry.connect(caller).triggerDraw(plaintextTotal, decryptionProof);
+  }
+
   beforeEach(async () => {
     [deployer, alice, bob] = await ethers.getSigners();
 
@@ -133,7 +140,7 @@ describe("Fumbo end-to-end", () => {
     await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
     await network.provider.send("evm_mine");
 
-    await drawRegistry.connect(deployer).triggerDraw();
+    await triggerDrawFor(deployer);
     expect(await drawRegistry.drawCount()).to.equal(1);
 
     await pool.connect(alice).claim(0);
@@ -164,7 +171,7 @@ describe("Fumbo end-to-end", () => {
   it("triggerDraw reverts NoDepositors when pool is empty", async () => {
     await network.provider.send("evm_increaseTime", [Number(DRAW_INTERVAL) + 1]);
     await network.provider.send("evm_mine");
-    await expect(drawRegistry.triggerDraw()).to.be.revertedWithCustomError(drawRegistry, "NoDepositors");
+    await expect(drawRegistry.triggerDraw(0, "0x")).to.be.revertedWithCustomError(drawRegistry, "NoDepositors");
   });
 
   it("triggerDraw reverts DrawNotReady before drawInterval elapses", async () => {
@@ -175,7 +182,7 @@ describe("Fumbo end-to-end", () => {
     const enc = await fhevm.createEncryptedInput(poolAddr, alice.address).add64(4096n).encrypt();
     await pool.connect(alice).deposit(enc.handles[0], enc.inputProof);
 
-    await expect(drawRegistry.triggerDraw()).to.be.revertedWithCustomError(drawRegistry, "DrawNotReady");
+    await expect(drawRegistry.triggerDraw(0, "0x")).to.be.revertedWithCustomError(drawRegistry, "DrawNotReady");
   });
 
   it("double claim reverts AlreadyClaimed", async () => {
@@ -204,7 +211,7 @@ describe("Fumbo end-to-end", () => {
 
     await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
     await network.provider.send("evm_mine");
-    await drawRegistry.triggerDraw();
+    await triggerDrawFor(deployer);
 
     await pool.connect(alice).claim(0);
     await expect(pool.connect(alice).claim(0)).to.be.revertedWithCustomError(pool, "AlreadyClaimed");
@@ -236,7 +243,7 @@ describe("Fumbo end-to-end", () => {
 
     await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
     await network.provider.send("evm_mine");
-    await drawRegistry.triggerDraw();
+    await triggerDrawFor(deployer);
 
     await expect(drawRegistry.expireDraw(0)).to.be.revertedWithCustomError(drawRegistry, "DrawNotExpirable");
 
@@ -308,7 +315,7 @@ describe("Fumbo end-to-end", () => {
 
     await network.provider.send("evm_increaseTime", [YEAR_SECONDS]);
     await network.provider.send("evm_mine");
-    await drawRegistry.triggerDraw();
+    await triggerDrawFor(deployer);
 
     await expect(pool.connect(bob).claim(0)).to.not.be.reverted;
 

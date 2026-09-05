@@ -51,6 +51,7 @@ contract FumboPool is ZamaEthereumConfig {
         deployer = msg.sender;
         _encTotalDeposits = FHE.asEuint64(uint64(0));
         FHE.allowThis(_encTotalDeposits);
+        FHE.makePubliclyDecryptable(_encTotalDeposits);
     }
 
     modifier onlyDeployer() {
@@ -89,6 +90,7 @@ contract FumboPool is ZamaEthereumConfig {
         FHE.allow(_encBalance[msg.sender], address(drawRegistry));
         FHE.allowThis(_encTotalDeposits);
         FHE.allow(_encTotalDeposits, address(drawRegistry));
+        FHE.makePubliclyDecryptable(_encTotalDeposits);
 
         emit Deposited(msg.sender, transferred);
     }
@@ -113,6 +115,7 @@ contract FumboPool is ZamaEthereumConfig {
         FHE.allow(_encBalance[msg.sender], address(drawRegistry));
         FHE.allowThis(_encTotalDeposits);
         FHE.allow(_encTotalDeposits, address(drawRegistry));
+        FHE.makePubliclyDecryptable(_encTotalDeposits);
 
         emit Withdrawn(msg.sender, credited);
     }
