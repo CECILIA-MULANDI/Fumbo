@@ -9,8 +9,7 @@
 <p align="center">
   <a href="https://fumbo-nu.vercel.app/">Live app</a>
   ·
-  <a href="https://github.com/CECILIA-MULANDI/Fumbo">Repo</a>
-  <!-- before submission, add: · <a href="VIDEO_URL">Video</a> · <a href="X_THREAD_URL">Thread</a> -->
+  <a href="https://www.loom.com/share/fa8a9a34e3bc4afebcf76912e2c1628c">Demo video</a>
 </p>
 
 ## What is Fumbo

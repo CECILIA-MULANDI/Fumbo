@@ -2,7 +2,7 @@
 
 One of the most elegant financial primitives DeFi has borrowed from traditional finance is prize-linked savings. A user deposits principal that stays safe while the pool it sits in yields rewards, and one depositor wins per draw, weighted by how much they saved. The options are either winning a prize or walking away with the whole of your principal. This is a mechanism that PoolTogether has proved to work even at scale. Sounds cool, right?
 
-However, there is a problem! On a transparent chain, everyone can see how much you saved, what your odds are, and who won every draw. This then raises issues like whales getting doxxed, wallets being profiled and small savers that could be part of the prize protocol scared away.
+However, there is a problem. On a transparent chain, everyone can see how much you saved, what your odds are, and who won every draw. This raises issues like whales getting doxxed, wallets being profiled, and small savers being scared away from a protocol that could actually benefit them.
 
 Fumbo (Swahili word for mystery or parable) is my attempt to fix that using Zama's FHEVM. Deposits and balances stay encrypted. Winner selection runs on ciphertext with an FHE-generated random number. The winner is never announced publicly onchain, so only the winner learns they won. Each draw's prize amount stays publicly decryptable so anyone can verify the pot exists, but nothing about individual positions or the winner leaks.
 
@@ -14,7 +14,7 @@ It's live on Sepolia right now.
 
 ## How it works
 
-A user claims some test cUSDT from our in-app faucet and makes a deposit it into the pool, and their principal just sits there safely, we never touched by the prize logic itself. After every 15 minutes any wallet can permissionlessly trigger a draw, and the prize for that draw is whatever yield would have accrued on the pool during that interval. One depositor gets picked, weighted by how much they've deposited, and if they claim within 24 hours the prize is sent to them through a confidential transfer. However, if they don't claim in time, the pot just rolls forward into the next draw and whenever they want their money back, they can withdraw their principal at any point.
+A user claims some test cUSDT from our in-app faucet and deposits it into the pool. Their principal just sits there safely, never touched by the prize logic itself. After every 15 minutes any wallet can permissionlessly trigger a draw, and the prize for that draw is whatever yield would have accrued on the pool during that interval. One depositor gets picked, weighted by how much they've deposited, and if they claim within 24 hours the prize is sent to them through a confidential transfer. However, if they don't claim in time, the pot just rolls forward into the next draw and whenever they want their money back, they can withdraw their principal at any point.
 
 That part is standard prize-linked savings! Well, I think what actually matters is that none of the sensitive data leaks. Nobody can see how much you deposited, what your odds of winning are, or whether you won any particular draw.
 
@@ -46,7 +46,7 @@ Most of what makes Fumbo work really comes down to three FHEVM primitives, used 
 
 One thing we needed to figure out was how to let users withdraw without leaking their balance in the process. The obvious approach would be to check whether they have enough and revert if they don't, but that revert itself becomes a problem. Even though the requested amount is encrypted, whether a transaction reverts or succeeds is completely public on the chain, so if we reverted on an overdraw, anyone watching would immediately learn that this address had less than the amount they asked for. That is NOT what we want!
 
-This is the pattern that actually works is to clamp on ciphertext instead:
+The pattern that actually works is to clamp on ciphertext instead:
 
 ```solidity
 euint64 requested = FHE.fromExternal(encAmount, proof);
@@ -105,7 +105,7 @@ There are two subtleties buried in that code that took me a while to get right. 
 
 The frontend has to pass the handle to the relayer for EIP-712 decryption, which means we need a stable way to read that handle back after the tx confirms. If we tried to grab it from an `eth_call` simulation of the function, we'd hit a subtle bug I only found the hard way. FHEVM handles produced during simulation can differ from the handles the actual transaction produces, so the handle the frontend thinks it should use ends up being one the tx never granted ACL for. The relayer then rejects it with a "not entitled to decrypt" error, and the user just sees a broken reveal.
 
-Storing the handle in the mapping is our way around that. The frontend reads it back through a plain view function on `revealedIsWinner`, and it's guaranteed to be the exact same handle the tx wrote and granted ACL for. That one cost me a full afternoon to figure out, lol!
+Storing the handle in the mapping is our way around that. The frontend reads it back through a plain view function on `revealedIsWinner`, and it's guaranteed to be the exact same handle the tx wrote and granted ACL for. That one cost me a full afternoon to figure out.
 
 ## Permissionless draws with rollover
 
@@ -133,7 +133,6 @@ The bounty asks whether a real user could trust Fumbo with real money today, and
 - **No formal audit.** The contracts have a test suite covering the core invariants like no-loss on withdraw, only-depositors-can-win, over-withdraw clamping, and rollover math, but that is not the same thing as a proper audit by a third party.
 - **O(n) winner selection.** The current loop is fine at Sepolia scale, but with thousands of depositors it becomes prohibitive, and a segment-tree balance accumulator would need to replace it.
 - **No rate limiting on the faucet.** Anyone can mint test cUSDT freely right now, which is fine because it's test tokens, but a production deployment would need proper access control there.
-- **Sepolia only.** FHEVM mainnet is coming, and Fumbo will move when it does.
 
 I don't think any of these are dealbreakers though, and each one has a documented path forward in the README.
 
