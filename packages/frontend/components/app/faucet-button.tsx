@@ -29,8 +29,7 @@ export function FaucetButton() {
       description: "Test tokens are in your wallet. Deposit any amount to join the pool.",
     });
     queryClient.invalidateQueries();
-    const t = setTimeout(() => reset(), 5000);
-    return () => clearTimeout(t);
+    reset();
   }, [isSuccess, toast, queryClient, reset]);
 
   useEffect(() => {

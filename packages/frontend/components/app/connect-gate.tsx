@@ -1,13 +1,14 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { Fragment } from "react";
 import { useAccount } from "wagmi";
 import { sepolia } from "wagmi/chains";
 
 import { Button } from "@/components/ui/button";
 
 export function ConnectGate({ children }: { children: React.ReactNode }) {
-  const { isConnected, chain } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const wrongNetwork = isConnected && chain?.id !== sepolia.id;
 
   if (!isConnected) {
@@ -59,7 +60,7 @@ export function ConnectGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return <Fragment key={address}>{children}</Fragment>;
 }
 
 function GatePanel({

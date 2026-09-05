@@ -87,8 +87,7 @@ export function WithdrawCard() {
     queryClient.invalidateQueries();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot on tx confirm
     setAmount("");
-    const t = setTimeout(() => resetWithdraw(), 5000);
-    return () => clearTimeout(t);
+    resetWithdraw();
   }, [withdrawSuccess, queryClient, resetWithdraw, toast]);
 
   useEffect(() => {

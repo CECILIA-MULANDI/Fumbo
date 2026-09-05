@@ -82,8 +82,7 @@ export function DepositCard() {
     queryClient.invalidateQueries();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot on tx confirm
     setAmount("");
-    const t = setTimeout(() => resetDeposit(), 5000);
-    return () => clearTimeout(t);
+    resetDeposit();
   }, [depositSuccess, queryClient, resetDeposit, toast]);
 
   const operatorSuccess = setOperator.isSuccess;
@@ -94,8 +93,7 @@ export function DepositCard() {
       title: "Pool approved",
       description: "You can deposit any amount for the next 30 days without re-approving.",
     });
-    const t = setTimeout(() => resetOperator(), 5000);
-    return () => clearTimeout(t);
+    resetOperator();
   }, [operatorSuccess, resetOperator, toast]);
 
   useEffect(() => {
